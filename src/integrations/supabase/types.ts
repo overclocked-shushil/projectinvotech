@@ -14,7 +14,205 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      complaints: {
+        Row: {
+          branch: string
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          reason: string
+          status: string
+        }
+        Insert: {
+          branch: string
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          reason: string
+          status?: string
+        }
+        Update: {
+          branch?: string
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          reason?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      families: {
+        Row: {
+          created_at: string
+          customer_id: string
+          dob: string | null
+          id: string
+          name: string
+          photo_url: string | null
+          relation: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          dob?: string | null
+          id?: string
+          name: string
+          photo_url?: string | null
+          relation: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          dob?: string | null
+          id?: string
+          name?: string
+          photo_url?: string | null
+          relation?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "families_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      otps: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          ration_id: string
+          used: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          ration_id: string
+          used?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ration_id?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
+      ration_collections: {
+        Row: {
+          created_at: string
+          customer_id: string
+          date_received: string
+          distributor_id: string
+          id: string
+          items: Json
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          date_received?: string
+          distributor_id: string
+          id?: string
+          items?: Json
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          date_received?: string
+          distributor_id?: string
+          id?: string
+          items?: Json
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ration_collections_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ration_collections_distributor_id_fkey"
+            columns: ["distributor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          phone: string | null
+          photo_url: string | null
+          ration_id: string
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          phone?: string | null
+          photo_url?: string | null
+          ration_id: string
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          photo_url?: string | null
+          ration_id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +221,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "distributor" | "customer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +348,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["admin", "distributor", "customer"],
+    },
   },
 } as const
