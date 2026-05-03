@@ -104,7 +104,7 @@ function AdminHome() {
         </div>
       )}
 
-      {tab === "txns" && <AdminTxns />}
+      {tab === "txns" && <AdminAllTxns />}
 
       {tab === "complaints" && (
         <div className="space-y-3">
