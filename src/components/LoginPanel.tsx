@@ -48,7 +48,7 @@ export function LoginPanel({ portal, registerHref }: { portal: Portal; registerH
   async function sendOtp() {
     const id = rationId.trim().toUpperCase();
     if (!RATION_ID_RE.test(id)) {
-      toast.error("Please enter a valid Ration Number (e.g., ABCD123456).");
+      toast.error("Please enter a valid Ration Number ID.");
       return;
     }
     setLoading(true);
@@ -97,11 +97,11 @@ export function LoginPanel({ portal, registerHref }: { portal: Portal; registerH
                   autoFocus
                   value={rationId}
                   onChange={(e) => setRationId(e.target.value.toUpperCase())}
-                  placeholder="ABCD123456"
+                  placeholder={portal === "admin" ? "ADMIN001" : "ABCD123456"}
                   maxLength={10}
                   className="mt-1.5 font-mono tracking-widest"
                 />
-                <p className="mt-1.5 text-xs text-muted-foreground">Format: ABCD123456</p>
+                <p className="mt-1.5 text-xs text-muted-foreground">{portal === "admin" ? "Admin ID: ADMIN001" : "Format: ABCD123456"}</p>
               </div>
               <Button className="w-full" onClick={sendOtp} disabled={loading}>
                 {loading ? "Sending OTP..." : "Send OTP"}

@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendSms, maskPhone } from "./sms.server";
-import { RATION_ID_RE, NAME_RE, generateOtp, generateToken, requireSession, type Role } from "./auth.server";
+import { RATION_ID_RE, NAME_RE, generateOtp, generateToken, requireSession, ensureAdminSeeded, isOldEnough, type Role } from "./auth.server";
 
 const rationId = z.string().regex(RATION_ID_RE, "Invalid Ration Number format");
 const portal = z.enum(["admin", "distributor", "customer"]);
@@ -13,6 +13,7 @@ export const requestOtp = createServerFn({ method: "POST" })
     z.object({ rationId, portal }).parse(d)
   )
   .handler(async ({ data }) => {
+    await ensureAdminSeeded();
     const { data: user } = await supabaseAdmin
       .from("users")
       .select("*")
@@ -177,6 +178,9 @@ export const addFamily = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { user } = await requireSession(data.token);
     if (user.role !== "customer") throw new Error("Forbidden");
+    if (!isOldEnough(data.dob)) {
+      throw new Error("Age must be at least 8 years. Please enter a valid date of birth.");
+    }
     await supabaseAdmin.from("families").insert({
       customer_id: user.id, name: data.name.trim(), dob: data.dob, relation: data.relation,
     });

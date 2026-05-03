@@ -7,7 +7,7 @@ import { addFamily, listFamily, myTransactions } from "@/server/pds.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NAME_RE, RELATIONS } from "@/lib/constants";
+import { NAME_RE, RELATIONS, maxDobString, isOldEnough, AGE_ERROR } from "@/lib/constants";
 import { toast } from "sonner";
 import { TransactionList } from "@/components/TransactionList";
 
@@ -38,6 +38,7 @@ function CustomerHome() {
     const n = name.trim();
     if (!NAME_RE.test(n)) return toast.error("Please enter a valid name (letters only).");
     if (!dob) return toast.error("Please enter date of birth.");
+    if (!isOldEnough(dob)) return toast.error(AGE_ERROR);
     const rel = relation === "Other" ? otherRel.trim() : relation;
     if (!rel) return toast.error("Please specify relation.");
     setBusy(true);
@@ -49,6 +50,9 @@ function CustomerHome() {
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
   }
+
+  const dobMax = maxDobString();
+  const dobError = dob && !isOldEnough(dob) ? AGE_ERROR : "";
 
   if (loading || !user) return null;
 
@@ -68,7 +72,11 @@ function CustomerHome() {
             <h2 className="font-display text-lg font-semibold">Add Family Member</h2>
             <div className="mt-4 space-y-4">
               <div><Label>Name</Label><Input value={name} onChange={(e)=>setName(e.target.value)} placeholder="e.g., Anita" className="mt-1.5" /></div>
-              <div><Label>Date of Birth</Label><Input type="date" value={dob} onChange={(e)=>setDob(e.target.value)} className="mt-1.5" /></div>
+              <div>
+                <Label>Date of Birth</Label>
+                <Input type="date" value={dob} max={dobMax} onChange={(e)=>setDob(e.target.value)} className="mt-1.5" />
+                {dobError && <p className="mt-1.5 text-xs text-destructive">{dobError}</p>}
+              </div>
               <div>
                 <Label>Relation</Label>
                 <select value={relation} onChange={(e)=>setRelation(e.target.value)} className="mt-1.5 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
