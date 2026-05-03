@@ -122,17 +122,6 @@ function AdminHome() {
   );
 }
 
-function AdminTxns() {
-  const { token } = useSession();
-  const [txns, setTxns] = useState<any[]>([]);
-  useEffect(() => {
-    if (!token) return;
-    myTransactions({ data: { token } }).then((r) => setTxns(r.transactions)).catch(() => {});
-  }, [token]);
-  // Admin won't match either filter -> empty. Use adminList collections instead via separate query:
-  return <AdminAllTxns />;
-}
-
 function AdminAllTxns() {
   const { token } = useSession();
   const [txns, setTxns] = useState<any[]>([]);
