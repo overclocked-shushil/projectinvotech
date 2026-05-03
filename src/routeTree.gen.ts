@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DistributorIndexRouteImport } from './routes/distributor.index'
+import { Route as CustomerIndexRouteImport } from './routes/customer.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as DistributorLoginRouteImport } from './routes/distributor.login'
 import { Route as CustomerRegisterRouteImport } from './routes/customer.register'
@@ -19,6 +21,16 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DistributorIndexRoute = DistributorIndexRouteImport.update({
+  id: '/distributor/',
+  path: '/distributor/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerIndexRoute = CustomerIndexRouteImport.update({
+  id: '/customer/',
+  path: '/customer/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -54,6 +66,8 @@ export interface FileRoutesByFullPath {
   '/customer/register': typeof CustomerRegisterRoute
   '/distributor/login': typeof DistributorLoginRoute
   '/admin/': typeof AdminIndexRoute
+  '/customer/': typeof CustomerIndexRoute
+  '/distributor/': typeof DistributorIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +76,8 @@ export interface FileRoutesByTo {
   '/customer/register': typeof CustomerRegisterRoute
   '/distributor/login': typeof DistributorLoginRoute
   '/admin': typeof AdminIndexRoute
+  '/customer': typeof CustomerIndexRoute
+  '/distributor': typeof DistributorIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +87,8 @@ export interface FileRoutesById {
   '/customer/register': typeof CustomerRegisterRoute
   '/distributor/login': typeof DistributorLoginRoute
   '/admin/': typeof AdminIndexRoute
+  '/customer/': typeof CustomerIndexRoute
+  '/distributor/': typeof DistributorIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +99,8 @@ export interface FileRouteTypes {
     | '/customer/register'
     | '/distributor/login'
     | '/admin/'
+    | '/customer/'
+    | '/distributor/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +109,8 @@ export interface FileRouteTypes {
     | '/customer/register'
     | '/distributor/login'
     | '/admin'
+    | '/customer'
+    | '/distributor'
   id:
     | '__root__'
     | '/'
@@ -97,6 +119,8 @@ export interface FileRouteTypes {
     | '/customer/register'
     | '/distributor/login'
     | '/admin/'
+    | '/customer/'
+    | '/distributor/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +130,8 @@ export interface RootRouteChildren {
   CustomerRegisterRoute: typeof CustomerRegisterRoute
   DistributorLoginRoute: typeof DistributorLoginRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  CustomerIndexRoute: typeof CustomerIndexRoute
+  DistributorIndexRoute: typeof DistributorIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -115,6 +141,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/distributor/': {
+      id: '/distributor/'
+      path: '/distributor'
+      fullPath: '/distributor/'
+      preLoaderRoute: typeof DistributorIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer/': {
+      id: '/customer/'
+      path: '/customer'
+      fullPath: '/customer/'
+      preLoaderRoute: typeof CustomerIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -162,7 +202,18 @@ const rootRouteChildren: RootRouteChildren = {
   CustomerRegisterRoute: CustomerRegisterRoute,
   DistributorLoginRoute: DistributorLoginRoute,
   AdminIndexRoute: AdminIndexRoute,
+  CustomerIndexRoute: CustomerIndexRoute,
+  DistributorIndexRoute: DistributorIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
