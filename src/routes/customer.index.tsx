@@ -38,6 +38,7 @@ function CustomerHome() {
     const n = name.trim();
     if (!NAME_RE.test(n)) return toast.error("Please enter a valid name (letters only).");
     if (!dob) return toast.error("Please enter date of birth.");
+    if (!isOldEnough(dob)) return toast.error(AGE_ERROR);
     const rel = relation === "Other" ? otherRel.trim() : relation;
     if (!rel) return toast.error("Please specify relation.");
     setBusy(true);
