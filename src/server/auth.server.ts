@@ -1,0 +1,28 @@
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { randomBytes } from "crypto";
+
+export const RATION_ID_RE = /^[A-Z]{4}[0-9]{6}$/;
+export const NAME_RE = /^[A-Za-z\s]{2,50}$/;
+
+export type Role = "admin" | "distributor" | "customer";
+
+export async function requireSession(token: string | undefined | null) {
+  if (!token) throw new Error("Not authenticated");
+  const { data, error } = await supabaseAdmin
+    .from("sessions")
+    .select("token, user_id, expires_at, users:users(*)")
+    .eq("token", token)
+    .maybeSingle();
+  if (error || !data) throw new Error("Invalid session");
+  if (new Date(data.expires_at).getTime() < Date.now()) throw new Error("Session expired");
+  // @ts-ignore
+  return { user: data.users as any };
+}
+
+export function generateOtp(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+export function generateToken(): string {
+  return randomBytes(32).toString("hex");
+}

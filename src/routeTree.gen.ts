@@ -9,38 +9,153 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ComplaintRouteImport } from './routes/complaint'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DistributorIndexRouteImport } from './routes/distributor.index'
+import { Route as CustomerIndexRouteImport } from './routes/customer.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as DistributorLoginRouteImport } from './routes/distributor.login'
+import { Route as CustomerRegisterRouteImport } from './routes/customer.register'
+import { Route as CustomerLoginRouteImport } from './routes/customer.login'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 
+const ComplaintRoute = ComplaintRouteImport.update({
+  id: '/complaint',
+  path: '/complaint',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DistributorIndexRoute = DistributorIndexRouteImport.update({
+  id: '/distributor/',
+  path: '/distributor/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerIndexRoute = CustomerIndexRouteImport.update({
+  id: '/customer/',
+  path: '/customer/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DistributorLoginRoute = DistributorLoginRouteImport.update({
+  id: '/distributor/login',
+  path: '/distributor/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerRegisterRoute = CustomerRegisterRouteImport.update({
+  id: '/customer/register',
+  path: '/customer/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerLoginRoute = CustomerLoginRouteImport.update({
+  id: '/customer/login',
+  path: '/customer/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/complaint': typeof ComplaintRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/customer/login': typeof CustomerLoginRoute
+  '/customer/register': typeof CustomerRegisterRoute
+  '/distributor/login': typeof DistributorLoginRoute
+  '/admin/': typeof AdminIndexRoute
+  '/customer/': typeof CustomerIndexRoute
+  '/distributor/': typeof DistributorIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/complaint': typeof ComplaintRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/customer/login': typeof CustomerLoginRoute
+  '/customer/register': typeof CustomerRegisterRoute
+  '/distributor/login': typeof DistributorLoginRoute
+  '/admin': typeof AdminIndexRoute
+  '/customer': typeof CustomerIndexRoute
+  '/distributor': typeof DistributorIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/complaint': typeof ComplaintRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/customer/login': typeof CustomerLoginRoute
+  '/customer/register': typeof CustomerRegisterRoute
+  '/distributor/login': typeof DistributorLoginRoute
+  '/admin/': typeof AdminIndexRoute
+  '/customer/': typeof CustomerIndexRoute
+  '/distributor/': typeof DistributorIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/complaint'
+    | '/admin/login'
+    | '/customer/login'
+    | '/customer/register'
+    | '/distributor/login'
+    | '/admin/'
+    | '/customer/'
+    | '/distributor/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/complaint'
+    | '/admin/login'
+    | '/customer/login'
+    | '/customer/register'
+    | '/distributor/login'
+    | '/admin'
+    | '/customer'
+    | '/distributor'
+  id:
+    | '__root__'
+    | '/'
+    | '/complaint'
+    | '/admin/login'
+    | '/customer/login'
+    | '/customer/register'
+    | '/distributor/login'
+    | '/admin/'
+    | '/customer/'
+    | '/distributor/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ComplaintRoute: typeof ComplaintRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  CustomerLoginRoute: typeof CustomerLoginRoute
+  CustomerRegisterRoute: typeof CustomerRegisterRoute
+  DistributorLoginRoute: typeof DistributorLoginRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  CustomerIndexRoute: typeof CustomerIndexRoute
+  DistributorIndexRoute: typeof DistributorIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/complaint': {
+      id: '/complaint'
+      path: '/complaint'
+      fullPath: '/complaint'
+      preLoaderRoute: typeof ComplaintRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +163,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/distributor/': {
+      id: '/distributor/'
+      path: '/distributor'
+      fullPath: '/distributor/'
+      preLoaderRoute: typeof DistributorIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer/': {
+      id: '/customer/'
+      path: '/customer'
+      fullPath: '/customer/'
+      preLoaderRoute: typeof CustomerIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/distributor/login': {
+      id: '/distributor/login'
+      path: '/distributor/login'
+      fullPath: '/distributor/login'
+      preLoaderRoute: typeof DistributorLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer/register': {
+      id: '/customer/register'
+      path: '/customer/register'
+      fullPath: '/customer/register'
+      preLoaderRoute: typeof CustomerRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer/login': {
+      id: '/customer/login'
+      path: '/customer/login'
+      fullPath: '/customer/login'
+      preLoaderRoute: typeof CustomerLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ComplaintRoute: ComplaintRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  CustomerLoginRoute: CustomerLoginRoute,
+  CustomerRegisterRoute: CustomerRegisterRoute,
+  DistributorLoginRoute: DistributorLoginRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  CustomerIndexRoute: CustomerIndexRoute,
+  DistributorIndexRoute: DistributorIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
