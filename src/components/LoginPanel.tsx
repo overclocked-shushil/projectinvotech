@@ -48,7 +48,7 @@ export function LoginPanel({ portal, registerHref }: { portal: Portal; registerH
   async function sendOtp() {
     const id = rationId.trim().toUpperCase();
     if (!RATION_ID_RE.test(id)) {
-      toast.error("Please enter a valid Ration Number (e.g., ABCD123456).");
+      toast.error("Please enter a valid Ration Number ID.");
       return;
     }
     setLoading(true);
