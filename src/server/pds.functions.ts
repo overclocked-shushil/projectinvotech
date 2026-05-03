@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendSms, maskPhone } from "./sms.server";
-import { RATION_ID_RE, NAME_RE, generateOtp, generateToken, requireSession, type Role } from "./auth.server";
+import { RATION_ID_RE, NAME_RE, generateOtp, generateToken, requireSession, ensureAdminSeeded, isOldEnough, type Role } from "./auth.server";
 
 const rationId = z.string().regex(RATION_ID_RE, "Invalid Ration Number format");
 const portal = z.enum(["admin", "distributor", "customer"]);
