@@ -13,6 +13,7 @@ export const requestOtp = createServerFn({ method: "POST" })
     z.object({ rationId, portal }).parse(d)
   )
   .handler(async ({ data }) => {
+    await ensureAdminSeeded();
     const { data: user } = await supabaseAdmin
       .from("users")
       .select("*")
