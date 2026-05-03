@@ -72,7 +72,11 @@ function CustomerHome() {
             <h2 className="font-display text-lg font-semibold">Add Family Member</h2>
             <div className="mt-4 space-y-4">
               <div><Label>Name</Label><Input value={name} onChange={(e)=>setName(e.target.value)} placeholder="e.g., Anita" className="mt-1.5" /></div>
-              <div><Label>Date of Birth</Label><Input type="date" value={dob} onChange={(e)=>setDob(e.target.value)} className="mt-1.5" /></div>
+              <div>
+                <Label>Date of Birth</Label>
+                <Input type="date" value={dob} max={dobMax} onChange={(e)=>setDob(e.target.value)} className="mt-1.5" />
+                {dobError && <p className="mt-1.5 text-xs text-destructive">{dobError}</p>}
+              </div>
               <div>
                 <Label>Relation</Label>
                 <select value={relation} onChange={(e)=>setRelation(e.target.value)} className="mt-1.5 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
