@@ -178,6 +178,9 @@ export const addFamily = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { user } = await requireSession(data.token);
     if (user.role !== "customer") throw new Error("Forbidden");
+    if (!isOldEnough(data.dob)) {
+      throw new Error("Age must be at least 8 years. Please enter a valid date of birth.");
+    }
     await supabaseAdmin.from("families").insert({
       customer_id: user.id, name: data.name.trim(), dob: data.dob, relation: data.relation,
     });
