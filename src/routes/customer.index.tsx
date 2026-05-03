@@ -51,6 +51,9 @@ function CustomerHome() {
     finally { setBusy(false); }
   }
 
+  const dobMax = maxDobString();
+  const dobError = dob && !isOldEnough(dob) ? AGE_ERROR : "";
+
   if (loading || !user) return null;
 
   return (
