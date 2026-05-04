@@ -107,16 +107,7 @@ function AdminHome() {
       {tab === "txns" && <AdminAllTxns />}
 
       {tab === "complaints" && (
-        <div className="space-y-3">
-          {data?.complaints.length === 0 && <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No complaints.</p>}
-          {data?.complaints.map((c) => (
-            <div key={c.id} className="rounded-xl border border-border bg-card p-4 shadow-soft">
-              <div className="flex justify-between"><p className="font-medium">{c.name} <span className="text-xs text-muted-foreground">· {c.phone}</span></p><span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span></div>
-              <p className="mt-1 text-xs text-muted-foreground">Branch: {c.branch}</p>
-              <p className="mt-2 text-sm">{c.reason}</p>
-            </div>
-          ))}
-        </div>
+        <ComplaintsTab complaints={data?.complaints ?? []} token={token!} onChange={refresh} />
       )}
     </PageShell>
   );
