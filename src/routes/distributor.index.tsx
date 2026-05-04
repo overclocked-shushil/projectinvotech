@@ -113,18 +113,27 @@ function DistHome() {
             <div className="mt-4 space-y-3">
               {items.map((it, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2">
-                  <select className="col-span-5 rounded-md border border-input bg-background px-3 py-2 text-sm" value={it.name} onChange={(e)=>{ const c=[...items]; c[i].name=e.target.value; setItems(c); }}>
-                    {RATION_ITEMS.map(x => <option key={x}>{x}</option>)}
+                  <select
+                    className="col-span-6 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={it.name}
+                    onChange={(e) => {
+                      const c = [...items];
+                      c[i].name = e.target.value;
+                      c[i].unit = unitForItem(e.target.value);
+                      setItems(c);
+                    }}
+                  >
+                    {RATION_ITEMS.map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
                   </select>
+                  <Input className="col-span-4" type="number" step="0.01" placeholder="Qty" value={it.quantity} onChange={(e) => { const c = [...items]; c[i].quantity = e.target.value; setItems(c); }} />
+                  <div className="col-span-1 flex items-center justify-center rounded-md bg-muted px-2 text-sm font-medium text-muted-foreground">{it.unit}</div>
+                  <button className="col-span-1 text-muted-foreground hover:text-destructive" onClick={() => setItems(items.filter((_, j) => j !== i))} disabled={items.length === 1}><X className="h-4 w-4 mx-auto" /></button>
                   {it.name === "Other" && (
-                    <Input className="col-span-12" placeholder="Please specify item" value={it.otherName ?? ""} onChange={(e)=>{ const c=[...items]; c[i].otherName=e.target.value; setItems(c); }} />
+                    <Input className="col-span-12" placeholder="Please specify item" value={it.otherName ?? ""} onChange={(e) => { const c = [...items]; c[i].otherName = e.target.value; setItems(c); }} />
                   )}
-                  <Input className="col-span-4" type="number" step="0.01" placeholder="Qty" value={it.quantity} onChange={(e)=>{ const c=[...items]; c[i].quantity=e.target.value; setItems(c); }} />
-                  <Input className="col-span-2" placeholder="Unit" value={it.unit} onChange={(e)=>{ const c=[...items]; c[i].unit=e.target.value; setItems(c); }} />
-                  <button className="col-span-1 text-muted-foreground hover:text-destructive" onClick={()=>setItems(items.filter((_,j)=>j!==i))} disabled={items.length===1}><X className="h-4 w-4 mx-auto" /></button>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={()=>setItems([...items, { name:"Rice", quantity:"", unit:"kg" }])}><Plus className="mr-1 h-4 w-4" /> Add item</Button>
+              <Button variant="outline" size="sm" onClick={() => setItems([...items, { name: "Rice", quantity: "", unit: unitForItem("Rice") }])}><Plus className="mr-1 h-4 w-4" /> Add item</Button>
             </div>
             <Button onClick={submit} disabled={!customer || busy} className="mt-6 w-full">{busy ? "Recording..." : "Record Collection"}</Button>
           </div>
