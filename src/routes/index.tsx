@@ -44,17 +44,8 @@ function Index() {
               <span className="mt-5 inline-block text-xs font-medium uppercase tracking-wider text-primary opacity-70 transition-opacity group-hover:opacity-100">Enter →</span>
             </Link>
           ))}
+        </div>
       </main>
-    </div>
-  );
-}
-
-function Stat({ label, value, hint }: { label: string; value: string; hint: string }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className="mt-2 font-display text-2xl font-semibold text-foreground">{value}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
     </div>
   );
 }
