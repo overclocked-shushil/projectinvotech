@@ -7,7 +7,7 @@ import { lookupCustomer, recordCollection, myTransactions } from "@/server/pds.f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RATION_ID_RE, RATION_ITEMS } from "@/lib/constants";
+import { RATION_ID_RE, RATION_ITEMS, unitForItem } from "@/lib/constants";
 import { toast } from "sonner";
 import { TransactionList } from "@/components/TransactionList";
 import { Plus, X } from "lucide-react";
