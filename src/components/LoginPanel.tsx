@@ -14,16 +14,17 @@ type Portal = "admin" | "distributor" | "customer";
 const titles: Record<Portal, { title: string; subtitle: string; gradient: string }> = {
   admin: { title: "Admin Login", subtitle: "Restricted access for system administrators.", gradient: "bg-gradient-hero" },
   distributor: { title: "Distributor Login", subtitle: "Sign in to record ration distribution.", gradient: "bg-gradient-hero" },
-  customer: { title: "Customer Login", subtitle: "Access your family records and collections.", gradient: "bg-gradient-warm" },
+  customer: { title: "Customer Login", subtitle: "Sign in with your registered phone number.", gradient: "bg-gradient-warm" },
 };
 
-export function LoginPanel({ portal, registerHref }: { portal: Portal; registerHref?: string }) {
+export function LoginPanel({ portal }: { portal: Portal }) {
   const meta = titles[portal];
   const navigate = useNavigate();
   const { setSession } = useSession();
+  const isPhoneMode = portal === "customer";
 
   const [step, setStep] = useState<"id" | "otp">("id");
-  const [rationId, setRationId] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [code, setCode] = useState("");
   const [maskedPhone, setMaskedPhone] = useState("");
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
@@ -46,14 +47,19 @@ export function LoginPanel({ portal, registerHref }: { portal: Portal; registerH
   const ss = String(Math.floor((remainingMs % 60000) / 1000)).padStart(2, "0");
 
   async function sendOtp() {
-    const id = rationId.trim().toUpperCase();
-    if (!RATION_ID_RE.test(id)) {
-      toast.error("Please enter a valid Ration Number ID.");
-      return;
+    const value = identifier.trim();
+    if (isPhoneMode) {
+      if (value.length < 8) { toast.error("Enter a valid phone number."); return; }
+    } else {
+      if (!RATION_ID_RE.test(value.toUpperCase())) { toast.error("Please enter a valid Ration Number ID."); return; }
     }
     setLoading(true);
     try {
-      const r = await requestOtp({ data: { rationId: id, portal } });
+      const r = await requestOtp({
+        data: isPhoneMode
+          ? { phone: value, portal }
+          : { rationId: value.toUpperCase(), portal },
+      });
       setMaskedPhone(r.maskedPhone);
       setExpiresAt(r.expiresAt);
       setResendIn(30);
@@ -69,7 +75,11 @@ export function LoginPanel({ portal, registerHref }: { portal: Portal; registerH
     if (!/^\d{6}$/.test(code)) { toast.error("Enter the 6-digit OTP."); return; }
     setLoading(true);
     try {
-      const r = await verifyOtp({ data: { rationId: rationId.trim().toUpperCase(), portal, code } });
+      const r = await verifyOtp({
+        data: isPhoneMode
+          ? { phone: identifier.trim(), portal, code }
+          : { rationId: identifier.trim().toUpperCase(), portal, code },
+      });
       setSession(r.token, { id: r.user.id, rationId: r.user.rationId, name: r.user.name, role: r.user.role, phone: r.user.phone });
       toast.success(`Welcome, ${r.user.name}`);
       navigate({ to: portal === "admin" ? "/admin" : portal === "distributor" ? "/distributor" : "/customer" });
@@ -91,24 +101,26 @@ export function LoginPanel({ portal, registerHref }: { portal: Portal; registerH
           {step === "id" ? (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="rid">Ration Number ID</Label>
+                <Label htmlFor="rid">{isPhoneMode ? "Phone Number" : "Ration Number ID"}</Label>
                 <Input
                   id="rid"
                   autoFocus
-                  value={rationId}
-                  onChange={(e) => setRationId(e.target.value.toUpperCase())}
-                  placeholder={portal === "admin" ? "ADMIN001" : "ABCD123456"}
-                  maxLength={10}
-                  className="mt-1.5 font-mono tracking-widest"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(isPhoneMode ? e.target.value : e.target.value.toUpperCase())}
+                  placeholder={isPhoneMode ? "+919999999999" : (portal === "admin" ? "ADMIN001" : "ABCD123456")}
+                  maxLength={isPhoneMode ? 16 : 10}
+                  className={`mt-1.5 ${isPhoneMode ? "" : "font-mono tracking-widest"}`}
                 />
-                <p className="mt-1.5 text-xs text-muted-foreground">{portal === "admin" ? "Admin ID: ADMIN001" : "Format: ABCD123456"}</p>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  {isPhoneMode ? "Enter your registered phone with country code." : portal === "admin" ? "Admin ID: ADMIN001" : "Format: ABCD123456"}
+                </p>
               </div>
               <Button className="w-full" onClick={sendOtp} disabled={loading}>
                 {loading ? "Sending OTP..." : "Send OTP"}
               </Button>
-              {registerHref && (
+              {isPhoneMode && (
                 <p className="text-center text-xs text-muted-foreground">
-                  No account? <a href={registerHref} className="font-medium text-primary hover:underline">Register</a>
+                  Don't have an account? Please contact your local Admin.
                 </p>
               )}
             </div>
@@ -145,7 +157,7 @@ export function LoginPanel({ portal, registerHref }: { portal: Portal; registerH
                 {loading ? "Verifying..." : "Verify & Sign In"}
               </Button>
               <button onClick={() => setStep("id")} className="w-full text-xs text-muted-foreground hover:text-foreground">
-                ← Use a different ID
+                ← Use a different {isPhoneMode ? "number" : "ID"}
               </button>
             </div>
           )}

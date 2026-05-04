@@ -15,7 +15,6 @@ import { Route as DistributorIndexRouteImport } from './routes/distributor.index
 import { Route as CustomerIndexRouteImport } from './routes/customer.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as DistributorLoginRouteImport } from './routes/distributor.login'
-import { Route as CustomerRegisterRouteImport } from './routes/customer.register'
 import { Route as CustomerLoginRouteImport } from './routes/customer.login'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 
@@ -49,11 +48,6 @@ const DistributorLoginRoute = DistributorLoginRouteImport.update({
   path: '/distributor/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CustomerRegisterRoute = CustomerRegisterRouteImport.update({
-  id: '/customer/register',
-  path: '/customer/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CustomerLoginRoute = CustomerLoginRouteImport.update({
   id: '/customer/login',
   path: '/customer/login',
@@ -70,7 +64,6 @@ export interface FileRoutesByFullPath {
   '/complaint': typeof ComplaintRoute
   '/admin/login': typeof AdminLoginRoute
   '/customer/login': typeof CustomerLoginRoute
-  '/customer/register': typeof CustomerRegisterRoute
   '/distributor/login': typeof DistributorLoginRoute
   '/admin/': typeof AdminIndexRoute
   '/customer/': typeof CustomerIndexRoute
@@ -81,7 +74,6 @@ export interface FileRoutesByTo {
   '/complaint': typeof ComplaintRoute
   '/admin/login': typeof AdminLoginRoute
   '/customer/login': typeof CustomerLoginRoute
-  '/customer/register': typeof CustomerRegisterRoute
   '/distributor/login': typeof DistributorLoginRoute
   '/admin': typeof AdminIndexRoute
   '/customer': typeof CustomerIndexRoute
@@ -93,7 +85,6 @@ export interface FileRoutesById {
   '/complaint': typeof ComplaintRoute
   '/admin/login': typeof AdminLoginRoute
   '/customer/login': typeof CustomerLoginRoute
-  '/customer/register': typeof CustomerRegisterRoute
   '/distributor/login': typeof DistributorLoginRoute
   '/admin/': typeof AdminIndexRoute
   '/customer/': typeof CustomerIndexRoute
@@ -106,7 +97,6 @@ export interface FileRouteTypes {
     | '/complaint'
     | '/admin/login'
     | '/customer/login'
-    | '/customer/register'
     | '/distributor/login'
     | '/admin/'
     | '/customer/'
@@ -117,7 +107,6 @@ export interface FileRouteTypes {
     | '/complaint'
     | '/admin/login'
     | '/customer/login'
-    | '/customer/register'
     | '/distributor/login'
     | '/admin'
     | '/customer'
@@ -128,7 +117,6 @@ export interface FileRouteTypes {
     | '/complaint'
     | '/admin/login'
     | '/customer/login'
-    | '/customer/register'
     | '/distributor/login'
     | '/admin/'
     | '/customer/'
@@ -140,7 +128,6 @@ export interface RootRouteChildren {
   ComplaintRoute: typeof ComplaintRoute
   AdminLoginRoute: typeof AdminLoginRoute
   CustomerLoginRoute: typeof CustomerLoginRoute
-  CustomerRegisterRoute: typeof CustomerRegisterRoute
   DistributorLoginRoute: typeof DistributorLoginRoute
   AdminIndexRoute: typeof AdminIndexRoute
   CustomerIndexRoute: typeof CustomerIndexRoute
@@ -191,13 +178,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DistributorLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/customer/register': {
-      id: '/customer/register'
-      path: '/customer/register'
-      fullPath: '/customer/register'
-      preLoaderRoute: typeof CustomerRegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/customer/login': {
       id: '/customer/login'
       path: '/customer/login'
@@ -220,7 +200,6 @@ const rootRouteChildren: RootRouteChildren = {
   ComplaintRoute: ComplaintRoute,
   AdminLoginRoute: AdminLoginRoute,
   CustomerLoginRoute: CustomerLoginRoute,
-  CustomerRegisterRoute: CustomerRegisterRoute,
   DistributorLoginRoute: DistributorLoginRoute,
   AdminIndexRoute: AdminIndexRoute,
   CustomerIndexRoute: CustomerIndexRoute,

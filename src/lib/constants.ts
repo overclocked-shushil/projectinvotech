@@ -24,9 +24,25 @@ export function isOldEnough(dob: string): boolean {
   return birth.getTime() <= cutoff.getTime();
 }
 
-export const RATION_ITEMS = [
-  "Rice","Wheat","Kerosene","Sugar","Oil","Iodised Salt","Pulses (Dal)","Maida","Bajra","Jowar","Mustard Oil","Other"
+export type RationItemCategory = "solid" | "liquid";
+export const RATION_ITEMS: { name: string; category: RationItemCategory }[] = [
+  { name: "Rice", category: "solid" },
+  { name: "Wheat", category: "solid" },
+  { name: "Kerosene", category: "liquid" },
+  { name: "Sugar", category: "solid" },
+  { name: "Oil", category: "liquid" },
+  { name: "Iodised Salt", category: "solid" },
+  { name: "Pulses (Dal)", category: "solid" },
+  { name: "Maida", category: "solid" },
+  { name: "Bajra", category: "solid" },
+  { name: "Jowar", category: "solid" },
+  { name: "Mustard Oil", category: "liquid" },
+  { name: "Other", category: "solid" },
 ];
+export function unitForItem(name: string): "kg" | "L" {
+  const it = RATION_ITEMS.find((i) => i.name === name);
+  return it?.category === "liquid" ? "L" : "kg";
+}
 
 export const RELATIONS = [
   "Spouse","Son","Daughter","Brother","Sister","Mother","Father","Grandfather","Grandmother","Uncle","Aunt","Nephew","Niece","Other"

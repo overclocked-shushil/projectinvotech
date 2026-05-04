@@ -45,23 +45,7 @@ function Index() {
             </Link>
           ))}
         </div>
-
-        <section className="mt-20 grid gap-8 rounded-3xl border border-border bg-card p-8 shadow-soft sm:grid-cols-3">
-          <Stat label="Format" value="ABCD123456" hint="Ration Number ID" />
-          <Stat label="OTP" value="6 digits" hint="Valid for 5 minutes" />
-          <Stat label="Roles" value="3 Strict" hint="Admin · Distributor · Customer" />
-        </section>
       </main>
-    </div>
-  );
-}
-
-function Stat({ label, value, hint }: { label: string; value: string; hint: string }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className="mt-2 font-display text-2xl font-semibold text-foreground">{value}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
     </div>
   );
 }

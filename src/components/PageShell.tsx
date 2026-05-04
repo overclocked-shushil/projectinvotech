@@ -1,15 +1,36 @@
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link, useRouter, useLocation } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
-export function BackButton({ fallback = "/" }: { fallback?: string }) {
+function dashboardRoot(pathname: string): string {
+  if (pathname.startsWith("/admin")) return "/admin";
+  if (pathname.startsWith("/distributor")) return "/distributor";
+  if (pathname.startsWith("/customer")) return "/customer";
+  return "/";
+}
+
+export function BackButton({ fallback }: { fallback?: string }) {
   const router = useRouter();
+  const location = useLocation();
+  const root = fallback ?? dashboardRoot(location.pathname);
+  const isAtRoot = location.pathname === root || location.pathname === root + "/";
+
+  if (isAtRoot) return <span />;
+
   return (
     <button
       onClick={() => {
+        // If history has a previous entry, use it; otherwise go to dashboard root.
         if (typeof window !== "undefined" && window.history.length > 1) {
-          window.history.back();
+          router.history.back();
+          // After a short delay, if we're still on the same login/landing page, fallback.
+          setTimeout(() => {
+            const path = window.location.pathname;
+            if (path === "/" || path.endsWith("/login")) {
+              router.navigate({ to: root });
+            }
+          }, 50);
         } else {
-          router.navigate({ to: fallback });
+          router.navigate({ to: root });
         }
       }}
       className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"

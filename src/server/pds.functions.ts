@@ -6,26 +6,26 @@ import { RATION_ID_RE, NAME_RE, generateOtp, generateToken, requireSession, ensu
 
 const rationId = z.string().regex(RATION_ID_RE, "Invalid Ration Number format");
 const portal = z.enum(["admin", "distributor", "customer"]);
+const phoneSchema = z.string().trim().min(8).max(20);
 
 // ============ REQUEST OTP ============
 export const requestOtp = createServerFn({ method: "POST" })
-  .inputValidator((d: { rationId: string; portal: Role }) =>
-    z.object({ rationId, portal }).parse(d)
+  .inputValidator((d: { rationId?: string; phone?: string; portal: Role }) =>
+    z.object({ rationId: rationId.optional(), phone: phoneSchema.optional(), portal })
+      .refine((v) => v.rationId || v.phone, { message: "Identifier required" })
+      .parse(d)
   )
   .handler(async ({ data }) => {
     await ensureAdminSeeded();
-    const { data: user } = await supabaseAdmin
-      .from("users")
-      .select("*")
-      .eq("ration_id", data.rationId)
-      .maybeSingle();
 
-    // For customers: allow auto-registration on first OTP request? No — they must register.
-    // For admin: must exist (seeded). For distributor: must be created by admin.
+    let q = supabaseAdmin.from("users").select("*");
+    if (data.rationId) q = q.eq("ration_id", data.rationId);
+    else q = q.eq("phone", data.phone!);
+    const { data: user } = await q.maybeSingle();
+
     if (!user) {
-      // Customers self-register, but we need a phone first. For login via existing ID:
       if (data.portal === "customer") {
-        throw new Error("No account found. Please register first.");
+        throw new Error("No account found. Please contact Admin.");
       }
       throw new Error("Invalid credentials for this portal.");
     }
@@ -33,17 +33,15 @@ export const requestOtp = createServerFn({ method: "POST" })
     if (user.role !== data.portal) {
       throw new Error("Invalid credentials for this portal.");
     }
-
     if (!user.phone) {
       throw new Error("No phone number on file. Contact admin.");
     }
 
-    // Invalidate prior OTPs
-    await supabaseAdmin.from("otps").update({ used: true }).eq("ration_id", data.rationId).eq("used", false);
+    await supabaseAdmin.from("otps").update({ used: true }).eq("ration_id", user.ration_id).eq("used", false);
 
     const code = generateOtp();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-    await supabaseAdmin.from("otps").insert({ ration_id: data.rationId, code, expires_at: expiresAt });
+    await supabaseAdmin.from("otps").insert({ ration_id: user.ration_id, code, expires_at: expiresAt });
 
     const sms = await sendSms(user.phone, `Your PDS OTP is ${code}. Valid for 5 minutes.`);
 
@@ -51,28 +49,31 @@ export const requestOtp = createServerFn({ method: "POST" })
       ok: true,
       maskedPhone: maskPhone(user.phone),
       expiresAt,
-      // Only returned in dev when SMS isn't configured:
       devOtp: sms.debugCode ? code : undefined,
     };
   });
 
 // ============ VERIFY OTP ============
 export const verifyOtp = createServerFn({ method: "POST" })
-  .inputValidator((d: { rationId: string; portal: Role; code: string }) =>
-    z.object({ rationId, portal, code: z.string().regex(/^\d{6}$/) }).parse(d)
+  .inputValidator((d: { rationId?: string; phone?: string; portal: Role; code: string }) =>
+    z.object({
+      rationId: rationId.optional(),
+      phone: phoneSchema.optional(),
+      portal,
+      code: z.string().regex(/^\d{6}$/),
+    }).refine((v) => v.rationId || v.phone, { message: "Identifier required" }).parse(d)
   )
   .handler(async ({ data }) => {
-    const { data: user } = await supabaseAdmin
-      .from("users")
-      .select("*")
-      .eq("ration_id", data.rationId)
-      .maybeSingle();
+    let q = supabaseAdmin.from("users").select("*");
+    if (data.rationId) q = q.eq("ration_id", data.rationId);
+    else q = q.eq("phone", data.phone!);
+    const { data: user } = await q.maybeSingle();
     if (!user || user.role !== data.portal) throw new Error("Invalid credentials for this portal.");
 
     const { data: otp } = await supabaseAdmin
       .from("otps")
       .select("*")
-      .eq("ration_id", data.rationId)
+      .eq("ration_id", user.ration_id)
       .eq("code", data.code)
       .eq("used", false)
       .order("created_at", { ascending: false })
@@ -89,27 +90,6 @@ export const verifyOtp = createServerFn({ method: "POST" })
     await supabaseAdmin.from("sessions").insert({ token, user_id: user.id, expires_at: expiresAt });
 
     return { token, user: { id: user.id, rationId: user.ration_id, name: user.name, role: user.role, phone: user.phone } };
-  });
-
-// ============ REGISTER CUSTOMER ============
-export const registerCustomer = createServerFn({ method: "POST" })
-  .inputValidator((d: { rationId: string; name: string; phone: string }) =>
-    z.object({
-      rationId,
-      name: z.string().trim().regex(NAME_RE, "Invalid name"),
-      phone: z.string().min(8).max(20),
-    }).parse(d)
-  )
-  .handler(async ({ data }) => {
-    const { data: existing } = await supabaseAdmin.from("users").select("id").eq("ration_id", data.rationId).maybeSingle();
-    if (existing) throw new Error("This Ration Number is already registered.");
-    await supabaseAdmin.from("users").insert({
-      ration_id: data.rationId,
-      role: "customer",
-      name: data.name.trim(),
-      phone: data.phone.trim(),
-    });
-    return { ok: true };
   });
 
 // ============ ME ============
@@ -136,19 +116,22 @@ export const adminCreateId = createServerFn({ method: "POST" })
       rationId,
       role: z.enum(["distributor", "customer"]),
       name: z.string().trim().regex(NAME_RE, "Invalid name"),
-      phone: z.string().min(8).max(20),
+      phone: phoneSchema,
     }).parse(d)
   )
   .handler(async ({ data }) => {
     const { user } = await requireSession(data.token);
     if (user.role !== "admin") throw new Error("Forbidden");
-    const { data: existing } = await supabaseAdmin.from("users").select("id").eq("ration_id", data.rationId).maybeSingle();
-    if (existing) throw new Error("Ration Number already exists");
+    const phone = data.phone.trim();
+    const { data: existingId } = await supabaseAdmin.from("users").select("id").eq("ration_id", data.rationId).maybeSingle();
+    if (existingId) throw new Error("Ration Number already exists");
+    const { data: existingPhone } = await supabaseAdmin.from("users").select("id").eq("phone", phone).maybeSingle();
+    if (existingPhone) throw new Error("This number is already registered. Please contact Admin.");
     await supabaseAdmin.from("users").insert({
       ration_id: data.rationId,
       role: data.role,
       name: data.name.trim(),
-      phone: data.phone.trim(),
+      phone,
     });
     return { ok: true };
   });
@@ -163,6 +146,19 @@ export const adminList = createServerFn({ method: "POST" })
     const { data: collections } = await supabaseAdmin.from("ration_collections").select("*").order("date_received", { ascending: false }).limit(200);
     const { data: complaints } = await supabaseAdmin.from("complaints").select("*").order("created_at", { ascending: false });
     return { users: users ?? [], collections: collections ?? [], complaints: complaints ?? [] };
+  });
+
+// ============ ADMIN: close complaint ============
+export const adminCloseComplaint = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string; complaintId: string }) =>
+    z.object({ token: z.string(), complaintId: z.string().uuid() }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "admin") throw new Error("Forbidden");
+    const { error } = await supabaseAdmin.from("complaints").update({ status: "Resolved" }).eq("id", data.complaintId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 // ============ FAMILY ============
@@ -250,18 +246,36 @@ export const myTransactions = createServerFn({ method: "POST" })
   });
 
 // ============ COMPLAINTS ============
+export const checkComplaintEligibility = createServerFn({ method: "POST" })
+  .inputValidator((d: { phone: string }) => z.object({ phone: phoneSchema }).parse(d))
+  .handler(async ({ data }) => {
+    const phone = data.phone.trim();
+    const { data: user } = await supabaseAdmin
+      .from("users").select("id, name, role").eq("phone", phone).eq("role", "customer").maybeSingle();
+    if (!user) {
+      throw new Error("You are not a registered customer. Only registered customers can file complaints.");
+    }
+    return { ok: true, name: user.name };
+  });
+
 export const submitComplaint = createServerFn({ method: "POST" })
   .inputValidator((d: { name: string; phone: string; branch: string; reason: string }) =>
     z.object({
       name: z.string().trim().regex(NAME_RE, "Invalid name"),
-      phone: z.string().min(8).max(20),
+      phone: phoneSchema,
       branch: z.string().min(1).max(100),
       reason: z.string().min(5).max(1000),
     }).parse(d)
   )
   .handler(async ({ data }) => {
+    const phone = data.phone.trim();
+    const { data: user } = await supabaseAdmin
+      .from("users").select("id").eq("phone", phone).eq("role", "customer").maybeSingle();
+    if (!user) {
+      throw new Error("You are not a registered customer. Only registered customers can file complaints.");
+    }
     await supabaseAdmin.from("complaints").insert({
-      name: data.name.trim(), phone: data.phone.trim(), branch: data.branch.trim(), reason: data.reason.trim(),
+      name: data.name.trim(), phone, branch: data.branch.trim(), reason: data.reason.trim(),
     });
     return { ok: true };
   });

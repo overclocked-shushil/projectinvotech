@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSession } from "@/lib/session";
-import { adminCreateId, adminList } from "@/server/pds.functions";
+import { adminCreateId, adminList, adminCloseComplaint } from "@/server/pds.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -107,16 +107,7 @@ function AdminHome() {
       {tab === "txns" && <AdminAllTxns />}
 
       {tab === "complaints" && (
-        <div className="space-y-3">
-          {data?.complaints.length === 0 && <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No complaints.</p>}
-          {data?.complaints.map((c) => (
-            <div key={c.id} className="rounded-xl border border-border bg-card p-4 shadow-soft">
-              <div className="flex justify-between"><p className="font-medium">{c.name} <span className="text-xs text-muted-foreground">· {c.phone}</span></p><span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span></div>
-              <p className="mt-1 text-xs text-muted-foreground">Branch: {c.branch}</p>
-              <p className="mt-2 text-sm">{c.reason}</p>
-            </div>
-          ))}
-        </div>
+        <ComplaintsTab complaints={data?.complaints ?? []} token={token!} onChange={refresh} />
       )}
     </PageShell>
   );
@@ -140,4 +131,65 @@ function AdminAllTxns() {
     });
   }, [token]);
   return <TransactionList transactions={txns} />;
+}
+
+function ComplaintsTab({ complaints, token, onChange }: { complaints: any[]; token: string; onChange: () => void }) {
+  const [filter, setFilter] = useState<"All" | "Open" | "Resolved">("All");
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const visible = complaints.filter((c) => filter === "All" ? true : (c.status ?? "Open") === filter);
+  const counts = {
+    All: complaints.length,
+    Open: complaints.filter((c) => (c.status ?? "Open") === "Open").length,
+    Resolved: complaints.filter((c) => c.status === "Resolved").length,
+  };
+
+  async function close(id: string) {
+    setBusyId(id);
+    try {
+      await adminCloseComplaint({ data: { token, complaintId: id } });
+      toast.success("Complaint marked Resolved.");
+      onChange();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusyId(null); }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {(["Open", "Resolved", "All"] as const).map((f) => (
+          <button key={f} onClick={() => setFilter(f)} className={`rounded-full px-3 py-1 text-xs font-medium ${filter === f ? "bg-foreground text-background" : "bg-secondary text-secondary-foreground"}`}>
+            {f} ({counts[f]})
+          </button>
+        ))}
+      </div>
+      {visible.length === 0 && <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No complaints.</p>}
+      {visible.map((c) => {
+        const status = c.status ?? "Open";
+        const isResolved = status === "Resolved";
+        return (
+          <div key={c.id} className="rounded-xl border border-border bg-card p-4 shadow-soft">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="font-medium">{c.name} <span className="text-xs text-muted-foreground">· {c.phone}</span></p>
+                <p className="mt-1 text-xs text-muted-foreground">Branch: {c.branch}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isResolved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{status}</span>
+                <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
+              </div>
+            </div>
+            <p className="mt-2 text-sm">{c.reason}</p>
+            {!isResolved && (
+              <div className="mt-3 flex justify-end">
+                <Button size="sm" variant="outline" disabled={busyId === c.id} onClick={() => close(c.id)}>
+                  {busyId === c.id ? "Closing..." : "Close Complaint"}
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
