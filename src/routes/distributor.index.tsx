@@ -58,7 +58,7 @@ function DistHome() {
         customer: { name: customer.name, ration_id: customer.ration_id },
         distributor: { name: user!.name, ration_id: user!.rationId },
       } as any);
-      setItems([{ name: "Rice", quantity: "", unit: "kg" }]);
+      setItems([{ name: "Rice", quantity: "", unit: unitForItem("Rice") }]);
       setCustomer(null); setRid(""); setFamily([]);
       loadTxns();
     } catch (e) { toast.error((e as Error).message); }
