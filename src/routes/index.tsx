@@ -44,13 +44,6 @@ function Index() {
               <span className="mt-5 inline-block text-xs font-medium uppercase tracking-wider text-primary opacity-70 transition-opacity group-hover:opacity-100">Enter →</span>
             </Link>
           ))}
-        </div>
-
-        <section className="mt-20 grid gap-8 rounded-3xl border border-border bg-card p-8 shadow-soft sm:grid-cols-3">
-          <Stat label="Format" value="ABCD123456" hint="Ration Number ID" />
-          <Stat label="OTP" value="6 digits" hint="Valid for 5 minutes" />
-          <Stat label="Roles" value="3 Strict" hint="Admin · Distributor · Customer" />
-        </section>
       </main>
     </div>
   );
