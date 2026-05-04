@@ -24,7 +24,7 @@ function DistHome() {
   const [rid, setRid] = useState("");
   const [customer, setCustomer] = useState<any>(null);
   const [family, setFamily] = useState<any[]>([]);
-  const [items, setItems] = useState<Item[]>([{ name: "Rice", quantity: "", unit: "kg" }]);
+  const [items, setItems] = useState<Item[]>([{ name: "Rice", quantity: "", unit: unitForItem("Rice") }]);
   const [busy, setBusy] = useState(false);
   const [txns, setTxns] = useState<any[]>([]);
 
