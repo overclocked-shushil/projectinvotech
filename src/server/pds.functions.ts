@@ -25,7 +25,7 @@ export const requestOtp = createServerFn({ method: "POST" })
 
     if (!user) {
       if (data.portal === "customer") {
-        throw new Error("No account found. Please contact Admin.");
+        throw new Error("Invalid Customer ID. Please contact your Admin.");
       }
       throw new Error("Invalid credentials for this portal.");
     }
