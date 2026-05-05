@@ -86,23 +86,7 @@ function AdminHome() {
       )}
 
       {tab === "users" && (
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-soft">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
-              <tr><th className="p-3">Ration ID</th><th className="p-3">Name</th><th className="p-3">Role</th><th className="p-3">Phone</th></tr>
-            </thead>
-            <tbody>
-              {data?.users.map(u => (
-                <tr key={u.id} className="border-t border-border">
-                  <td className="p-3 font-mono">{u.ration_id}</td>
-                  <td className="p-3">{u.name}</td>
-                  <td className="p-3 capitalize">{u.role}</td>
-                  <td className="p-3 text-muted-foreground">{u.phone ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <UsersTable users={data?.users ?? []} token={token!} />
       )}
 
       {tab === "txns" && <AdminAllTxns />}
