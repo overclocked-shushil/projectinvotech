@@ -25,7 +25,7 @@ export const requestOtp = createServerFn({ method: "POST" })
 
     if (!user) {
       if (data.portal === "customer") {
-        throw new Error("No account found. Please contact Admin.");
+        throw new Error("Invalid Customer ID. Please contact your Admin.");
       }
       throw new Error("Invalid credentials for this portal.");
     }
@@ -161,11 +161,12 @@ export const adminCloseComplaint = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// ============ FAMILY ============
-export const addFamily = createServerFn({ method: "POST" })
-  .inputValidator((d: { token: string; name: string; dob: string; relation: string }) =>
+// ============ FAMILY (admin-managed) ============
+export const adminAddFamily = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string; customerRationId: string; name: string; dob: string; relation: string }) =>
     z.object({
       token: z.string(),
+      customerRationId: rationId,
       name: z.string().trim().regex(NAME_RE, "Invalid name"),
       dob: z.string().min(4),
       relation: z.string().min(1).max(50),
@@ -173,14 +174,64 @@ export const addFamily = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { user } = await requireSession(data.token);
-    if (user.role !== "customer") throw new Error("Forbidden");
+    if (user.role !== "admin") throw new Error("Forbidden");
     if (!isOldEnough(data.dob)) {
       throw new Error("Age must be at least 8 years. Please enter a valid date of birth.");
     }
+    const { data: c } = await supabaseAdmin.from("users").select("id").eq("ration_id", data.customerRationId).eq("role", "customer").maybeSingle();
+    if (!c) throw new Error("Customer not found");
     await supabaseAdmin.from("families").insert({
-      customer_id: user.id, name: data.name.trim(), dob: data.dob, relation: data.relation,
+      customer_id: c.id, name: data.name.trim(), dob: data.dob, relation: data.relation,
     });
     return { ok: true };
+  });
+
+export const adminUpdateFamily = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string; id: string; name: string; dob: string; relation: string }) =>
+    z.object({
+      token: z.string(),
+      id: z.string().uuid(),
+      name: z.string().trim().regex(NAME_RE, "Invalid name"),
+      dob: z.string().min(4),
+      relation: z.string().min(1).max(50),
+    }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "admin") throw new Error("Forbidden");
+    if (!isOldEnough(data.dob)) {
+      throw new Error("Age must be at least 8 years. Please enter a valid date of birth.");
+    }
+    const { error } = await supabaseAdmin.from("families").update({
+      name: data.name.trim(), dob: data.dob, relation: data.relation,
+    }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminDeleteFamily = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string; id: string }) =>
+    z.object({ token: z.string(), id: z.string().uuid() }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "admin") throw new Error("Forbidden");
+    const { error } = await supabaseAdmin.from("families").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminListFamily = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string; customerRationId: string }) =>
+    z.object({ token: z.string(), customerRationId: rationId }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "admin") throw new Error("Forbidden");
+    const { data: c } = await supabaseAdmin.from("users").select("id").eq("ration_id", data.customerRationId).eq("role", "customer").maybeSingle();
+    if (!c) throw new Error("Customer not found");
+    const { data: rows } = await supabaseAdmin.from("families").select("*").eq("customer_id", c.id).order("created_at");
+    return { family: rows ?? [] };
   });
 
 export const listFamily = createServerFn({ method: "POST" })

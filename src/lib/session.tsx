@@ -39,7 +39,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     if (token) { try { await logoutFn({ data: { token } }); } catch {} }
     setToken(null); setUser(null);
-    localStorage.removeItem(KEY);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(KEY);
+      // Replace current history entry so Back doesn't return to the dashboard
+      window.location.replace("/");
+    }
   };
 
   return <SessionContext.Provider value={{ user, token, loading, setSession, signOut }}>{children}</SessionContext.Provider>;
