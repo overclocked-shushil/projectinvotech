@@ -163,6 +163,32 @@ export const adminCloseComplaint = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ============ ADMIN: delete user (customer or distributor) ============
+export const adminDeleteUser = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string; userId: string }) =>
+    z.object({ token: z.string(), userId: z.string().uuid() }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "admin") throw new Error("Forbidden");
+    const { data: target } = await supabaseAdmin.from("users").select("id, ration_id, role").eq("id", data.userId).maybeSingle();
+    if (!target) throw new Error("User not found");
+    if (target.role === "admin") throw new Error("Cannot delete admin account");
+
+    if (target.role === "customer") {
+      await supabaseAdmin.from("families").delete().eq("customer_id", target.id);
+      await supabaseAdmin.from("ration_collections").delete().eq("customer_id", target.id);
+    } else if (target.role === "distributor") {
+      await supabaseAdmin.from("ration_collections").delete().eq("distributor_id", target.id);
+    }
+    await supabaseAdmin.from("otps").delete().eq("ration_id", target.ration_id);
+    await supabaseAdmin.from("sessions").delete().eq("user_id", target.id);
+    await supabaseAdmin.from("deleted_ration_ids").insert({ ration_id: target.ration_id, role: target.role });
+    const { error } = await supabaseAdmin.from("users").delete().eq("id", target.id);
+    if (error) throw new Error(error.message);
+    return { ok: true, role: target.role };
+  });
+
 // ============ FAMILY (admin-managed) ============
 export const adminAddFamily = createServerFn({ method: "POST" })
   .inputValidator((d: { token: string; customerRationId: string; name: string; dob: string; relation: string }) =>
