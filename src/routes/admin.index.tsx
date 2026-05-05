@@ -178,3 +178,154 @@ function ComplaintsTab({ complaints, token, onChange }: { complaints: any[]; tok
     </div>
   );
 }
+
+function UsersTable({ users, token }: { users: any[]; token: string }) {
+  const [openCustomer, setOpenCustomer] = useState<any | null>(null);
+  return (
+    <>
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-soft">
+        <table className="w-full text-sm">
+          <thead className="bg-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr><th className="p-3">Ration ID</th><th className="p-3">Name</th><th className="p-3">Role</th><th className="p-3">Phone</th><th className="p-3"></th></tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} className="border-t border-border">
+                <td className="p-3 font-mono">{u.ration_id}</td>
+                <td className="p-3">{u.name}</td>
+                <td className="p-3 capitalize">{u.role}</td>
+                <td className="p-3 text-muted-foreground">{u.phone ?? "—"}</td>
+                <td className="p-3 text-right">
+                  {u.role === "customer" && (
+                    <Button size="sm" variant="outline" onClick={() => setOpenCustomer(u)}>
+                      Edit / Add Family Members
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {openCustomer && (
+        <FamilyDialog customer={openCustomer} token={token} onClose={() => setOpenCustomer(null)} />
+      )}
+    </>
+  );
+}
+
+function FamilyDialog({ customer, token, onClose }: { customer: any; token: string; onClose: () => void }) {
+  const [family, setFamily] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [dob, setDob] = useState("");
+  const [relation, setRelation] = useState(RELATIONS[0]);
+  const [otherRel, setOtherRel] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const r = await adminListFamily({ data: { token, customerRationId: customer.ration_id } });
+      setFamily(r.family);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { refresh(); }, []);
+
+  function resetForm() { setName(""); setDob(""); setRelation(RELATIONS[0]); setOtherRel(""); setEditingId(null); }
+
+  async function save() {
+    const n = name.trim();
+    if (!NAME_RE.test(n)) return toast.error("Please enter a valid name.");
+    if (!dob) return toast.error("Please enter date of birth.");
+    if (!isOldEnough(dob)) return toast.error(AGE_ERROR);
+    const rel = relation === "Other" ? otherRel.trim() : relation;
+    if (!rel) return toast.error("Please specify relation.");
+    setBusy(true);
+    try {
+      if (editingId) {
+        await adminUpdateFamily({ data: { token, id: editingId, name: n, dob, relation: rel } });
+        toast.success("Family member updated.");
+      } else {
+        await adminAddFamily({ data: { token, customerRationId: customer.ration_id, name: n, dob, relation: rel } });
+        toast.success("Family member added.");
+      }
+      resetForm();
+      refresh();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
+  }
+
+  function startEdit(f: any) {
+    setEditingId(f.id);
+    setName(f.name);
+    setDob(f.dob ?? "");
+    if (RELATIONS.includes(f.relation)) { setRelation(f.relation); setOtherRel(""); }
+    else { setRelation("Other"); setOtherRel(f.relation); }
+  }
+
+  async function remove(id: string) {
+    if (!confirm("Delete this family member?")) return;
+    try { await adminDeleteFamily({ data: { token, id } }); toast.success("Removed."); refresh(); }
+    catch (e) { toast.error((e as Error).message); }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Family Members — {customer.name} ({customer.ration_id})</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-lg border border-border p-4">
+            <h3 className="text-sm font-semibold">{editingId ? "Edit Member" : "Add Member"}</h3>
+            <div className="mt-3 space-y-3">
+              <div><Label>Member Name</Label><Input value={name} onChange={(e)=>setName(e.target.value)} className="mt-1.5" /></div>
+              <div>
+                <Label>Date of Birth</Label>
+                <Input type="date" value={dob} max={maxDobString()} onChange={(e)=>setDob(e.target.value)} className="mt-1.5" />
+                {dob && !isOldEnough(dob) && <p className="mt-1 text-xs text-destructive">{AGE_ERROR}</p>}
+              </div>
+              <div>
+                <Label>Relation</Label>
+                <select value={relation} onChange={(e)=>setRelation(e.target.value)} className="mt-1.5 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  {RELATIONS.map((r) => <option key={r}>{r}</option>)}
+                </select>
+                {relation === "Other" && <Input className="mt-2" placeholder="Please specify relation" value={otherRel} onChange={(e)=>setOtherRel(e.target.value)} />}
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={save} disabled={busy} className="flex-1">{busy ? "Saving..." : editingId ? "Update" : "Add"}</Button>
+                {editingId && <Button variant="outline" onClick={resetForm}>Cancel</Button>}
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border p-4">
+            <h3 className="text-sm font-semibold">Existing Members ({family.length})</h3>
+            {loading ? (
+              <p className="mt-3 text-sm text-muted-foreground">Loading...</p>
+            ) : family.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">No family members yet.</p>
+            ) : (
+              <ul className="mt-3 max-h-80 divide-y divide-border overflow-y-auto">
+                {family.map((f) => (
+                  <li key={f.id} className="flex items-start justify-between py-2">
+                    <div>
+                      <p className="text-sm font-medium">{f.name}</p>
+                      <p className="text-xs text-muted-foreground">{f.relation} · DOB: {f.dob}</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => startEdit(f)}>Edit</Button>
+                      <Button size="sm" variant="ghost" onClick={() => remove(f.id)}>Delete</Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
