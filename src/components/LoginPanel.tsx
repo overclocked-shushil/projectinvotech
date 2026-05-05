@@ -160,7 +160,7 @@ export function LoginPanel({ portal }: { portal: Portal }) {
                 {loading ? "Verifying..." : "Verify & Sign In"}
               </Button>
               <button onClick={() => setStep("id")} className="w-full text-xs text-muted-foreground hover:text-foreground">
-                ← Use a different {isPhoneMode ? "number" : "ID"}
+                ← Use a different ID
               </button>
             </div>
           )}
