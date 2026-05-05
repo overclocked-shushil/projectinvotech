@@ -125,6 +125,8 @@ export const adminCreateId = createServerFn({ method: "POST" })
     const phone = data.phone.trim();
     const { data: existingId } = await supabaseAdmin.from("users").select("id").eq("ration_id", data.rationId).maybeSingle();
     if (existingId) throw new Error("Ration Number already exists");
+    const { data: reserved } = await supabaseAdmin.from("deleted_ration_ids").select("ration_id").eq("ration_id", data.rationId).maybeSingle();
+    if (reserved) throw new Error("This ID was previously deleted and cannot be reused.");
     const { data: existingPhone } = await supabaseAdmin.from("users").select("id").eq("phone", phone).maybeSingle();
     if (existingPhone) throw new Error("This number is already registered. Please contact Admin.");
     await supabaseAdmin.from("users").insert({
