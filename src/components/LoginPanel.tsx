@@ -56,19 +56,17 @@ export function LoginPanel({ portal }: { portal: Portal }) {
   const ss = String(Math.floor((remainingMs % 60000) / 1000)).padStart(2, "0");
 
   async function sendOtp() {
-    const value = identifier.trim();
-    if (isPhoneMode) {
-      if (value.length < 8) { toast.error("Enter a valid phone number."); return; }
-    } else {
-      if (!RATION_ID_RE.test(value.toUpperCase())) { toast.error("Please enter a valid Ration Number ID."); return; }
+    const value = identifier.trim().toUpperCase();
+    if (!RATION_ID_RE.test(value)) {
+      const msg = portal === "customer"
+        ? "Invalid Customer ID. Please contact your Admin."
+        : portal === "admin" ? "Please enter a valid Admin Unique ID."
+        : "Please enter a valid Distributor Unique ID.";
+      toast.error(msg); return;
     }
     setLoading(true);
     try {
-      const r = await requestOtp({
-        data: isPhoneMode
-          ? { phone: value, portal }
-          : { rationId: value.toUpperCase(), portal },
-      });
+      const r = await requestOtp({ data: { rationId: value, portal } });
       setMaskedPhone(r.maskedPhone);
       setExpiresAt(r.expiresAt);
       setResendIn(30);
