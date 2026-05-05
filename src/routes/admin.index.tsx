@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSession } from "@/lib/session";
-import { adminCreateId, adminList, adminCloseComplaint, adminAddFamily, adminUpdateFamily, adminDeleteFamily, adminListFamily } from "@/server/pds.functions";
+import { adminCreateId, adminList, adminCloseComplaint, adminAddFamily, adminUpdateFamily, adminDeleteFamily, adminListFamily, adminDeleteUser } from "@/server/pds.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
