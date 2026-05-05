@@ -44,6 +44,24 @@ export type Database = {
         }
         Relationships: []
       }
+      deleted_ration_ids: {
+        Row: {
+          deleted_at: string
+          ration_id: string
+          role: string
+        }
+        Insert: {
+          deleted_at?: string
+          ration_id: string
+          role: string
+        }
+        Update: {
+          deleted_at?: string
+          ration_id?: string
+          role?: string
+        }
+        Relationships: []
+      }
       families: {
         Row: {
           created_at: string
