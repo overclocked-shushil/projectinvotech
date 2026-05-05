@@ -83,9 +83,7 @@ export function LoginPanel({ portal }: { portal: Portal }) {
     setLoading(true);
     try {
       const r = await verifyOtp({
-        data: isPhoneMode
-          ? { phone: identifier.trim(), portal, code }
-          : { rationId: identifier.trim().toUpperCase(), portal, code },
+        data: { rationId: identifier.trim().toUpperCase(), portal, code },
       });
       setSession(r.token, { id: r.user.id, rationId: r.user.rationId, name: r.user.name, role: r.user.role, phone: r.user.phone });
       toast.success(`Welcome, ${r.user.name}`);
