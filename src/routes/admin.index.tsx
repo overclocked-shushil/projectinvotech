@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSession } from "@/lib/session";
-import { adminCreateId, adminList, adminCloseComplaint, adminAddFamily, adminUpdateFamily, adminDeleteFamily, adminListFamily } from "@/server/pds.functions";
+import { adminCreateId, adminList, adminCloseComplaint, adminAddFamily, adminUpdateFamily, adminDeleteFamily, adminListFamily, adminDeleteUser } from "@/server/pds.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,11 @@ function AdminHome() {
     setData(r);
   }
   useEffect(() => { if (token) refresh(); }, [token]);
+  useEffect(() => {
+    const h = () => refresh();
+    window.addEventListener("admin:refresh", h);
+    return () => window.removeEventListener("admin:refresh", h);
+  }, [token]);
 
   async function create() {
     const id = rid.trim().toUpperCase(); const n = name.trim();
@@ -181,6 +186,21 @@ function ComplaintsTab({ complaints, token, onChange }: { complaints: any[]; tok
 
 function UsersTable({ users, token }: { users: any[]; token: string }) {
   const [openCustomer, setOpenCustomer] = useState<any | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function handleDelete(u: any) {
+    const label = u.role === "customer" ? "customer" : "distributor";
+    if (!confirm(`Are you sure you want to delete this ${label}? This action cannot be undone.`)) return;
+    setBusyId(u.id);
+    try {
+      await adminDeleteUser({ data: { token, userId: u.id } });
+      toast.success(`${label.charAt(0).toUpperCase() + label.slice(1)} deleted successfully.`);
+      // refresh by reloading parent data
+      window.dispatchEvent(new CustomEvent("admin:refresh"));
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusyId(null); }
+  }
+
   return (
     <>
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-soft">
@@ -196,11 +216,23 @@ function UsersTable({ users, token }: { users: any[]; token: string }) {
                 <td className="p-3 capitalize">{u.role}</td>
                 <td className="p-3 text-muted-foreground">{u.phone ?? "—"}</td>
                 <td className="p-3 text-right">
-                  {u.role === "customer" && (
-                    <Button size="sm" variant="outline" onClick={() => setOpenCustomer(u)}>
-                      Edit / Add Family Members
-                    </Button>
-                  )}
+                  <div className="flex justify-end gap-2">
+                    {u.role === "customer" && (
+                      <Button size="sm" variant="outline" onClick={() => setOpenCustomer(u)}>
+                        Edit / Add Family Members
+                      </Button>
+                    )}
+                    {u.role !== "admin" && (
+                      <Button
+                        size="sm"
+                        disabled={busyId === u.id}
+                        onClick={() => handleDelete(u)}
+                        className="bg-red-600 text-white hover:bg-red-700"
+                      >
+                        {busyId === u.id ? "Deleting..." : "Delete"}
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
