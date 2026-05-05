@@ -33,6 +33,11 @@ function AdminHome() {
     setData(r);
   }
   useEffect(() => { if (token) refresh(); }, [token]);
+  useEffect(() => {
+    const h = () => refresh();
+    window.addEventListener("admin:refresh", h);
+    return () => window.removeEventListener("admin:refresh", h);
+  }, [token]);
 
   async function create() {
     const id = rid.trim().toUpperCase(); const n = name.trim();
