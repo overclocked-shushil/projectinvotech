@@ -11,17 +11,26 @@ import { toast } from "sonner";
 
 type Portal = "admin" | "distributor" | "customer";
 
-const titles: Record<Portal, { title: string; subtitle: string; gradient: string }> = {
-  admin: { title: "Admin Login", subtitle: "Restricted access for system administrators.", gradient: "bg-gradient-hero" },
-  distributor: { title: "Distributor Login", subtitle: "Sign in to record ration distribution.", gradient: "bg-gradient-hero" },
-  customer: { title: "Customer Login", subtitle: "Sign in with your registered phone number.", gradient: "bg-gradient-warm" },
+const titles: Record<Portal, { title: string; subtitle: string; gradient: string; idLabel: string; idPlaceholder: string; hint: string }> = {
+  admin: {
+    title: "Admin Login", subtitle: "Restricted access for system administrators.", gradient: "bg-gradient-hero",
+    idLabel: "Admin Unique ID", idPlaceholder: "Enter Admin Unique ID", hint: "Admin ID: ADMIN001",
+  },
+  distributor: {
+    title: "Distributor Login", subtitle: "Sign in to record ration distribution.", gradient: "bg-gradient-hero",
+    idLabel: "Distributor Unique ID", idPlaceholder: "Enter Distributor Unique ID", hint: "Format: ABCD123456",
+  },
+  customer: {
+    title: "Customer Login", subtitle: "Sign in with your Customer ID.", gradient: "bg-gradient-warm",
+    idLabel: "Customer ID", idPlaceholder: "Enter your Customer ID", hint: "Format: ABCD123456",
+  },
 };
 
 export function LoginPanel({ portal }: { portal: Portal }) {
   const meta = titles[portal];
   const navigate = useNavigate();
   const { setSession } = useSession();
-  const isPhoneMode = portal === "customer";
+  const isPhoneMode = false;
 
   const [step, setStep] = useState<"id" | "otp">("id");
   const [identifier, setIdentifier] = useState("");
