@@ -30,7 +30,7 @@ export function LoginPanel({ portal }: { portal: Portal }) {
   const meta = titles[portal];
   const navigate = useNavigate();
   const { setSession } = useSession();
-  const isPhoneMode = false;
+  
 
   const [step, setStep] = useState<"id" | "otp">("id");
   const [identifier, setIdentifier] = useState("");
