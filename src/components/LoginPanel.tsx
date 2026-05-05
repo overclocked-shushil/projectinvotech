@@ -110,26 +110,24 @@ export function LoginPanel({ portal }: { portal: Portal }) {
           {step === "id" ? (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="rid">{isPhoneMode ? "Phone Number" : "Ration Number ID"}</Label>
+                <Label htmlFor="rid">{meta.idLabel}</Label>
                 <Input
                   id="rid"
                   autoFocus
                   value={identifier}
-                  onChange={(e) => setIdentifier(isPhoneMode ? e.target.value : e.target.value.toUpperCase())}
-                  placeholder={isPhoneMode ? "+919999999999" : (portal === "admin" ? "ADMIN001" : "ABCD123456")}
-                  maxLength={isPhoneMode ? 16 : 10}
-                  className={`mt-1.5 ${isPhoneMode ? "" : "font-mono tracking-widest"}`}
+                  onChange={(e) => setIdentifier(e.target.value.toUpperCase())}
+                  placeholder={meta.idPlaceholder}
+                  maxLength={10}
+                  className="mt-1.5 font-mono tracking-widest"
                 />
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  {isPhoneMode ? "Enter your registered phone with country code." : portal === "admin" ? "Admin ID: ADMIN001" : "Format: ABCD123456"}
-                </p>
+                <p className="mt-1.5 text-xs text-muted-foreground">{meta.hint}</p>
               </div>
               <Button className="w-full" onClick={sendOtp} disabled={loading}>
                 {loading ? "Sending OTP..." : "Send OTP"}
               </Button>
-              {isPhoneMode && (
+              {portal === "customer" && (
                 <p className="text-center text-xs text-muted-foreground">
-                  Don't have an account? Please contact your local Admin.
+                  Don't have a Customer ID? Please contact your local Admin.
                 </p>
               )}
             </div>
