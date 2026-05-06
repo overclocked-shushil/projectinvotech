@@ -70,25 +70,29 @@
 }
 
 .dark {
-  --background: oklch(0.16 0.02 260);
-  --foreground: oklch(0.96 0.01 85);
-  --card: oklch(0.22 0.03 260);
-  --card-foreground: oklch(0.96 0.01 85);
-  --popover: oklch(0.22 0.03 260);
-  --popover-foreground: oklch(0.96 0.01 85);
+  --background: #0f172a;
+  --foreground: #ffffff;
+  --card: #1e293b;
+  --card-foreground: #ffffff;
+  --popover: #1e293b;
+  --popover-foreground: #ffffff;
   --primary: oklch(0.7 0.16 265);
-  --primary-foreground: oklch(0.16 0.02 260);
-  --secondary: oklch(0.28 0.03 260);
-  --secondary-foreground: oklch(0.96 0.01 85);
-  --muted: oklch(0.28 0.03 260);
-  --muted-foreground: oklch(0.7 0.03 260);
-  --accent: oklch(0.32 0.04 260);
-  --accent-foreground: oklch(0.96 0.01 85);
+  --primary-foreground: #0f172a;
+  --secondary: #1e293b;
+  --secondary-foreground: #ffffff;
+  --muted: #1e293b;
+  --muted-foreground: #cbd5e1;
+  --accent: #334155;
+  --accent-foreground: #ffffff;
   --destructive: oklch(0.65 0.2 22);
-  --destructive-foreground: oklch(0.96 0.01 85);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
+  --destructive-foreground: #ffffff;
+  --border: #334155;
+  --input: #1e293b;
   --ring: oklch(0.7 0.16 265);
+}
+
+html, body, * {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 @layer base {
