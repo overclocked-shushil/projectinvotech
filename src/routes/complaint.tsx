@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { checkComplaintEligibility, submitComplaint } from "@/server/pds.functions";
+import { checkComplaintEligibility, submitComplaint, trackComplaints } from "@/server/pds.functions";
 import { NAME_RE } from "@/lib/constants";
 import { toast } from "sonner";
 
