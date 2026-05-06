@@ -1,5 +1,6 @@
 import { Link, useRouter, useLocation } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function dashboardRoot(pathname: string): string {
   if (pathname.startsWith("/admin")) return "/admin";
@@ -48,7 +49,10 @@ export function PageShell({ children, title, subtitle }: { children: React.React
       <div className="mx-auto max-w-5xl px-6 py-6">
         <div className="mb-6 flex items-center justify-between">
           <BackButton />
-          <Link to="/" className="text-xs font-medium uppercase tracking-widest text-muted-foreground hover:text-foreground">PDS</Link>
+          <div className="flex items-center gap-3">
+            <Link to="/" className="text-xs font-medium uppercase tracking-widest text-muted-foreground hover:text-foreground">PDS</Link>
+            <ThemeToggle />
+          </div>
         </div>
         {title && (
           <header className="mb-8">

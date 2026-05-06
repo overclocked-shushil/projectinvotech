@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { checkComplaintEligibility, submitComplaint } from "@/server/pds.functions";
+import { checkComplaintEligibility, submitComplaint, trackComplaints } from "@/server/pds.functions";
 import { NAME_RE } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -76,6 +76,66 @@ function Complaint() {
           </div>
         )}
       </div>
+
+      <TrackComplaintSection />
     </PageShell>
+  );
+}
+
+function TrackComplaintSection() {
+  const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [results, setResults] = useState<any[] | null>(null);
+
+  async function track() {
+    if (!phone.trim() || !name.trim()) return toast.error("Enter phone and name.");
+    setBusy(true);
+    try {
+      const r = await trackComplaints({ data: { phone: phone.trim(), name: name.trim() } });
+      setResults(r.complaints);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
+  }
+
+  function badge(status: string) {
+    if (status === "Resolved") return "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300";
+    if (status === "Under Review") return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
+    return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+  }
+  function dot(status: string) {
+    if (status === "Resolved") return "🟢";
+    if (status === "Under Review") return "🔵";
+    return "🟡";
+  }
+
+  return (
+    <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-border bg-card p-6 shadow-soft">
+      <h2 className="font-display text-xl font-semibold">Track Your Complaint</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Enter your registered details to view complaint status.</p>
+      <div className="mt-4 space-y-3">
+        <div><Label>Phone Number</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+919999999999" className="mt-1.5" /></div>
+        <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1.5" /></div>
+        <Button className="w-full" onClick={track} disabled={busy}>{busy ? "Tracking..." : "Track"}</Button>
+      </div>
+      {results !== null && (
+        <div className="mt-5 space-y-2">
+          {results.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">No complaints found for this number.</p>
+          ) : results.map((c) => {
+            const status = c.status ?? "Open";
+            return (
+              <div key={c.id} className="rounded-lg border border-border p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium">{c.reason}</p>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${badge(status)}`}>{dot(status)} {status}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Filed: {new Date(c.created_at).toLocaleString()}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

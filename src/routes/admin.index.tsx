@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSession } from "@/lib/session";
-import { adminCreateId, adminList, adminCloseComplaint, adminAddFamily, adminUpdateFamily, adminDeleteFamily, adminListFamily, adminDeleteUser } from "@/server/pds.functions";
+import { adminCreateId, adminList, adminUpdateComplaintStatus, adminAddFamily, adminUpdateFamily, adminDeleteFamily, adminListFamily, adminDeleteUser } from "@/server/pds.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -124,30 +124,39 @@ function AdminAllTxns() {
 }
 
 function ComplaintsTab({ complaints, token, onChange }: { complaints: any[]; token: string; onChange: () => void }) {
-  const [filter, setFilter] = useState<"All" | "Open" | "Resolved">("All");
+  const STATUSES = ["Open", "Under Review", "Resolved"] as const;
+  type Status = typeof STATUSES[number];
+  const [filter, setFilter] = useState<"All" | Status>("All");
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const visible = complaints.filter((c) => filter === "All" ? true : (c.status ?? "Open") === filter);
   const counts = {
     All: complaints.length,
     Open: complaints.filter((c) => (c.status ?? "Open") === "Open").length,
+    "Under Review": complaints.filter((c) => c.status === "Under Review").length,
     Resolved: complaints.filter((c) => c.status === "Resolved").length,
-  };
+  } as const;
 
-  async function close(id: string) {
+  async function setStatus(id: string, status: Status) {
     setBusyId(id);
     try {
-      await adminCloseComplaint({ data: { token, complaintId: id } });
-      toast.success("Complaint marked Resolved.");
+      await adminUpdateComplaintStatus({ data: { token, complaintId: id, status } });
+      toast.success(`Status updated to ${status}.`);
       onChange();
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusyId(null); }
   }
 
+  function badgeClass(status: Status) {
+    if (status === "Resolved") return "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300";
+    if (status === "Under Review") return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
+    return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {(["Open", "Resolved", "All"] as const).map((f) => (
+        {(["Open", "Under Review", "Resolved", "All"] as const).map((f) => (
           <button key={f} onClick={() => setFilter(f)} className={`rounded-full px-3 py-1 text-xs font-medium ${filter === f ? "bg-foreground text-background" : "bg-secondary text-secondary-foreground"}`}>
             {f} ({counts[f]})
           </button>
@@ -155,8 +164,7 @@ function ComplaintsTab({ complaints, token, onChange }: { complaints: any[]; tok
       </div>
       {visible.length === 0 && <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No complaints.</p>}
       {visible.map((c) => {
-        const status = c.status ?? "Open";
-        const isResolved = status === "Resolved";
+        const status = (c.status ?? "Open") as Status;
         return (
           <div key={c.id} className="rounded-xl border border-border bg-card p-4 shadow-soft">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -165,18 +173,22 @@ function ComplaintsTab({ complaints, token, onChange }: { complaints: any[]; tok
                 <p className="mt-1 text-xs text-muted-foreground">Branch: {c.branch}</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isResolved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{status}</span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${badgeClass(status)}`}>{status}</span>
                 <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
               </div>
             </div>
             <p className="mt-2 text-sm">{c.reason}</p>
-            {!isResolved && (
-              <div className="mt-3 flex justify-end">
-                <Button size="sm" variant="outline" disabled={busyId === c.id} onClick={() => close(c.id)}>
-                  {busyId === c.id ? "Closing..." : "Close Complaint"}
-                </Button>
-              </div>
-            )}
+            <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+              <label className="text-xs text-muted-foreground">Update status:</label>
+              <select
+                value={status}
+                disabled={busyId === c.id}
+                onChange={(e) => setStatus(c.id, e.target.value as Status)}
+                className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+              >
+                {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
           </div>
         );
       })}

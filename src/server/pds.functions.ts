@@ -150,7 +150,24 @@ export const adminList = createServerFn({ method: "POST" })
     return { users: users ?? [], collections: collections ?? [], complaints: complaints ?? [] };
   });
 
-// ============ ADMIN: close complaint ============
+// ============ ADMIN: update complaint status ============
+const COMPLAINT_STATUSES = ["Open", "Under Review", "Resolved"] as const;
+export const adminUpdateComplaintStatus = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string; complaintId: string; status: string }) =>
+    z.object({
+      token: z.string(),
+      complaintId: z.string().uuid(),
+      status: z.enum(COMPLAINT_STATUSES),
+    }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "admin") throw new Error("Forbidden");
+    const { error } = await supabaseAdmin.from("complaints").update({ status: data.status }).eq("id", data.complaintId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const adminCloseComplaint = createServerFn({ method: "POST" })
   .inputValidator((d: { token: string; complaintId: string }) =>
     z.object({ token: z.string(), complaintId: z.string().uuid() }).parse(d)
@@ -161,6 +178,23 @@ export const adminCloseComplaint = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("complaints").update({ status: "Resolved" }).eq("id", data.complaintId);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+// ============ PUBLIC: track complaints by phone + name ============
+export const trackComplaints = createServerFn({ method: "POST" })
+  .inputValidator((d: { phone: string; name: string }) =>
+    z.object({ phone: phoneSchema, name: z.string().trim().min(1) }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const phone = data.phone.trim();
+    const name = data.name.trim().toLowerCase();
+    const { data: rows } = await supabaseAdmin
+      .from("complaints")
+      .select("id, reason, status, created_at, name, branch")
+      .eq("phone", phone)
+      .order("created_at", { ascending: false });
+    const filtered = (rows ?? []).filter((r) => (r.name ?? "").trim().toLowerCase() === name);
+    return { complaints: filtered };
   });
 
 // ============ ADMIN: delete user (customer or distributor) ============
