@@ -103,6 +103,10 @@ function AdminHome() {
         <UsersTable users={data?.users ?? []} token={token!} />
       )}
 
+      {tab === "stock" && (
+        <StockManagement token={token!} distributors={(data?.users ?? []).filter((u: any) => u.role === "distributor")} onLowCountChange={setLowStockCount} />
+      )}
+
       {tab === "txns" && <AdminAllTxns />}
 
       {tab === "complaints" && (
