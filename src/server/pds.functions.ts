@@ -322,7 +322,27 @@ export const lookupCustomer = createServerFn({ method: "POST" })
     const { data: c } = await supabaseAdmin.from("users").select("*").eq("ration_id", data.rationId).eq("role", "customer").maybeSingle();
     if (!c) throw new Error("Customer not found");
     const { data: family } = await supabaseAdmin.from("families").select("*").eq("customer_id", c.id);
-    return { customer: c, family: family ?? [] };
+    const householdSize = (family?.length ?? 0) + 1; // +1 for head of family
+    const entitlements = ENTITLED_ITEMS.map((it) => ({
+      name: it.name,
+      unit: unitForItem(it.name),
+      quantity: entitledQty(it.name, householdSize),
+    }));
+    // Monthly check — has this customer already collected this month?
+    const { data: thisMonth } = await supabaseAdmin
+      .from("ration_collections")
+      .select("id, date_received")
+      .eq("customer_id", c.id)
+      .gte("date_received", startOfThisMonthIso())
+      .limit(1)
+      .maybeSingle();
+    return {
+      customer: c,
+      family: family ?? [],
+      householdSize,
+      entitlements,
+      alreadyCollectedThisMonth: !!thisMonth,
+    };
   });
 
 const itemSchema = z.object({
@@ -344,6 +364,29 @@ export const recordCollection = createServerFn({ method: "POST" })
     if (user.role !== "distributor") throw new Error("Forbidden");
     const { data: c } = await supabaseAdmin.from("users").select("*").eq("ration_id", data.customerRationId).eq("role", "customer").maybeSingle();
     if (!c) throw new Error("Customer not found");
+
+    // Block duplicate distribution in same calendar month
+    const { data: existing } = await supabaseAdmin
+      .from("ration_collections")
+      .select("id")
+      .eq("customer_id", c.id)
+      .gte("date_received", startOfThisMonthIso())
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      throw new Error("Ration already distributed to this customer for this month.");
+    }
+
+    // Atomic stock deduction (skip "Other" — no stock tracking for free-form items)
+    const trackable = data.items.filter((i) => i.name !== "Other");
+    if (trackable.length > 0) {
+      const { error: rpcErr } = await supabaseAdmin.rpc("deduct_distributor_stock", {
+        _distributor_id: user.id,
+        _items: trackable,
+      });
+      if (rpcErr) throw new Error(rpcErr.message);
+    }
+
     const { data: row, error } = await supabaseAdmin.from("ration_collections").insert({
       customer_id: c.id, distributor_id: user.id, items: data.items, status: "Completed",
     }).select().single();
