@@ -62,9 +62,16 @@ function AdminHome() {
     <PageShell title="Admin Panel" subtitle={`Signed in as ${user.name} (${user.rationId})`}>
       <div className="mb-6 flex items-center justify-between">
         <div className="flex flex-wrap gap-2">
-          {(["create","users","txns","complaints"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${tab===t?"bg-foreground text-background":"bg-secondary text-secondary-foreground hover:bg-accent"}`}>
-              {t === "create" ? "ID Creation" : t === "users" ? `Users (${data?.users.length ?? 0})` : t === "txns" ? "All Transactions" : `Complaints (${data?.complaints.length ?? 0})`}
+          {(["create","users","stock","txns","complaints"] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)} className={`relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${tab===t?"bg-foreground text-background":"bg-secondary text-secondary-foreground hover:bg-accent"}`}>
+              {t === "create" ? "ID Creation"
+                : t === "users" ? `Users (${data?.users.length ?? 0})`
+                : t === "stock" ? "Stock Management"
+                : t === "txns" ? "All Transactions"
+                : `Complaints (${data?.complaints.length ?? 0})`}
+              {t === "stock" && lowStockCount > 0 && (
+                <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white">{lowStockCount}</span>
+              )}
             </button>
           ))}
         </div>
