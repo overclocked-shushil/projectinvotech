@@ -441,3 +441,89 @@ export const submitComplaint = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+// ============ STOCK MANAGEMENT ============
+
+const stockItemName = z.string().min(1).max(50);
+
+// Admin sets/refills stock for a distributor.
+// `mode: "set"` overwrites assigned_qty; `mode: "add"` increments it.
+export const adminSetStock = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string; distributorId: string; itemName: string; unit: string; quantity: number; mode: "set" | "add" }) =>
+    z.object({
+      token: z.string(),
+      distributorId: z.string().uuid(),
+      itemName: stockItemName,
+      unit: z.string().min(1).max(20),
+      quantity: z.number().min(0).max(1000000),
+      mode: z.enum(["set", "add"]),
+    }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "admin") throw new Error("Forbidden");
+
+    const { data: dist } = await supabaseAdmin.from("users").select("id, role").eq("id", data.distributorId).maybeSingle();
+    if (!dist || dist.role !== "distributor") throw new Error("Distributor not found");
+
+    const { data: existing } = await supabaseAdmin
+      .from("distributor_stocks")
+      .select("*")
+      .eq("distributor_id", data.distributorId)
+      .eq("item_name", data.itemName)
+      .maybeSingle();
+
+    if (!existing) {
+      const { error } = await supabaseAdmin.from("distributor_stocks").insert({
+        distributor_id: data.distributorId,
+        item_name: data.itemName,
+        unit: data.unit,
+        assigned_qty: data.quantity,
+      });
+      if (error) throw new Error(error.message);
+    } else {
+      const newAssigned = data.mode === "set" ? data.quantity : Number(existing.assigned_qty) + data.quantity;
+      if (newAssigned < Number(existing.distributed_qty)) {
+        throw new Error(`Cannot set stock below already-distributed amount (${existing.distributed_qty} ${existing.unit}).`);
+      }
+      const { error } = await supabaseAdmin
+        .from("distributor_stocks")
+        .update({ assigned_qty: newAssigned, unit: data.unit, updated_at: new Date().toISOString() })
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+// Admin overview of all stocks across all distributors
+export const adminListStocks = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string }) => z.object({ token: z.string() }).parse(d))
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "admin") throw new Error("Forbidden");
+    const { data: stocks } = await supabaseAdmin
+      .from("distributor_stocks")
+      .select("*, distributor:users!distributor_stocks_distributor_id_fkey(id, name, ration_id)")
+      .order("created_at", { ascending: false });
+    // The FK alias may not exist; fall back to manual join if needed.
+    if (stocks) return { stocks };
+    const { data: raw } = await supabaseAdmin.from("distributor_stocks").select("*");
+    const { data: users } = await supabaseAdmin.from("users").select("id, name, ration_id").eq("role", "distributor");
+    const byId: Record<string, any> = {};
+    (users ?? []).forEach((u) => { byId[u.id] = u; });
+    return { stocks: (raw ?? []).map((s) => ({ ...s, distributor: byId[s.distributor_id] })) };
+  });
+
+// Distributor view of own current stock
+export const myStock = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string }) => z.object({ token: z.string() }).parse(d))
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "distributor") throw new Error("Forbidden");
+    const { data: rows } = await supabaseAdmin
+      .from("distributor_stocks")
+      .select("*")
+      .eq("distributor_id", user.id)
+      .order("item_name");
+    return { stocks: rows ?? [] };
+  });
