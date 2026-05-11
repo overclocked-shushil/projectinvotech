@@ -501,17 +501,18 @@ export const adminListStocks = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { user } = await requireSession(data.token);
     if (user.role !== "admin") throw new Error("Forbidden");
-    const { data: stocks } = await supabaseAdmin
+    const { data: raw } = await supabaseAdmin
       .from("distributor_stocks")
-      .select("*, distributor:users!distributor_stocks_distributor_id_fkey(id, name, ration_id)")
+      .select("*")
       .order("created_at", { ascending: false });
-    // The FK alias may not exist; fall back to manual join if needed.
-    if (stocks) return { stocks };
-    const { data: raw } = await supabaseAdmin.from("distributor_stocks").select("*");
-    const { data: users } = await supabaseAdmin.from("users").select("id, name, ration_id").eq("role", "distributor");
+    const { data: users } = await supabaseAdmin
+      .from("users").select("id, name, ration_id").eq("role", "distributor");
     const byId: Record<string, any> = {};
     (users ?? []).forEach((u) => { byId[u.id] = u; });
-    return { stocks: (raw ?? []).map((s) => ({ ...s, distributor: byId[s.distributor_id] })) };
+    return {
+      stocks: (raw ?? []).map((s) => ({ ...s, distributor: byId[s.distributor_id] ?? null })),
+      distributors: users ?? [],
+    };
   });
 
 // Distributor view of own current stock
