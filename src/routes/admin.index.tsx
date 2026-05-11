@@ -1,16 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSession } from "@/lib/session";
-import { adminCreateId, adminList, adminUpdateComplaintStatus, adminAddFamily, adminUpdateFamily, adminDeleteFamily, adminListFamily, adminDeleteUser } from "@/server/pds.functions";
+import { adminCreateId, adminList, adminUpdateComplaintStatus, adminAddFamily, adminUpdateFamily, adminDeleteFamily, adminListFamily, adminDeleteUser, adminListStocks, adminSetStock } from "@/server/pds.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { NAME_RE, RATION_ID_RE, RELATIONS, maxDobString, isOldEnough, AGE_ERROR } from "@/lib/constants";
+import { NAME_RE, RATION_ID_RE, RELATIONS, maxDobString, isOldEnough, AGE_ERROR, ENTITLED_ITEMS, unitForItem } from "@/lib/constants";
 import { toast } from "sonner";
 import { TransactionList } from "@/components/TransactionList";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/admin/")({ component: AdminHome });
 
