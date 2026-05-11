@@ -3,6 +3,12 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendSms, maskPhone } from "./sms.server";
 import { RATION_ID_RE, NAME_RE, generateOtp, generateToken, requireSession, ensureAdminSeeded, isOldEnough, type Role } from "./auth.server";
+import { ENTITLED_ITEMS, entitledQty, unitForItem } from "@/lib/constants";
+
+function startOfThisMonthIso(): string {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+}
 
 const rationId = z.string().regex(RATION_ID_RE, "Invalid Ration Number format");
 const portal = z.enum(["admin", "distributor", "customer"]);
