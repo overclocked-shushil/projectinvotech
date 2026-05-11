@@ -19,7 +19,8 @@ function AdminHome() {
   const { loading } = useRequireRole("admin", "/admin/login");
   const { token, user, signOut } = useSession();
   const [data, setData] = useState<{ users: any[]; collections: any[]; complaints: any[] } | null>(null);
-  const [tab, setTab] = useState<"create" | "users" | "txns" | "complaints">("create");
+  const [tab, setTab] = useState<"create" | "users" | "stock" | "txns" | "complaints">("create");
+  const [lowStockCount, setLowStockCount] = useState(0);
 
   // create form
   const [role, setRole] = useState<"distributor" | "customer">("distributor");
