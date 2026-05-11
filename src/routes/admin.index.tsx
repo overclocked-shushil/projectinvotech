@@ -386,3 +386,170 @@ function FamilyDialog({ customer, token, onClose }: { customer: any; token: stri
     </Dialog>
   );
 }
+
+function StockManagement({
+  token,
+  distributors,
+  onLowCountChange,
+}: {
+  token: string;
+  distributors: any[];
+  onLowCountChange: (n: number) => void;
+}) {
+  const [stocks, setStocks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDist, setSelectedDist] = useState<string>("");
+  const [item, setItem] = useState<string>(ENTITLED_ITEMS[0].name);
+  const [qty, setQty] = useState<string>("");
+  const [mode, setMode] = useState<"set" | "add">("add");
+  const [busy, setBusy] = useState(false);
+
+  async function refresh() {
+    try {
+      const r = await adminListStocks({ data: { token } });
+      setStocks(r.stocks);
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { refresh(); }, [token]);
+
+  // Realtime: refresh when any stock row changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-stocks")
+      .on("postgres_changes", { event: "*", schema: "public", table: "distributor_stocks" }, () => refresh())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const lowStock = useMemo(() =>
+    stocks.filter((s) => {
+      const a = Number(s.assigned_qty), d = Number(s.distributed_qty);
+      return a > 0 && (a - d) / a < 0.1;
+    }),
+    [stocks]
+  );
+
+  useEffect(() => { onLowCountChange(lowStock.length); }, [lowStock.length]);
+
+  async function save() {
+    if (!selectedDist) return toast.error("Select a distributor.");
+    const n = Number(qty);
+    if (!Number.isFinite(n) || n < 0) return toast.error("Enter a valid quantity.");
+    setBusy(true);
+    try {
+      await adminSetStock({
+        data: { token, distributorId: selectedDist, itemName: item, unit: unitForItem(item), quantity: n, mode },
+      });
+      toast.success(mode === "set" ? "Stock set." : "Stock refilled.");
+      setQty("");
+      refresh();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
+  }
+
+  function rowColor(remaining: number, assigned: number) {
+    if (assigned === 0) return "";
+    const pct = remaining / assigned;
+    if (pct < 0.1) return "bg-red-50 dark:bg-red-950/30";
+    if (pct <= 0.5) return "bg-yellow-50 dark:bg-yellow-950/30";
+    return "";
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Low stock alerts banner */}
+      {lowStock.length > 0 && (
+        <div className="rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/40">
+          <h3 className="font-semibold text-red-700 dark:text-red-300">⚠️ Low Stock Alerts ({lowStock.length})</h3>
+          <ul className="mt-2 space-y-1 text-sm text-red-700 dark:text-red-200">
+            {lowStock.map((s) => {
+              const remaining = Number(s.assigned_qty) - Number(s.distributed_qty);
+              return (
+                <li key={s.id}>
+                  {s.item_name} for Distributor {s.distributor?.name ?? "—"} ({s.distributor?.ration_id ?? "—"}) is below 10%. Only {remaining} {s.unit} remaining.
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* Set / refill stock form */}
+      <div className="max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-soft">
+        <h2 className="font-display text-xl font-semibold">Set / Refill Stock</h2>
+        <p className="text-sm text-muted-foreground">Choose a distributor, an item, and add or overwrite their stock.</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label>Distributor</Label>
+            <select value={selectedDist} onChange={(e) => setSelectedDist(e.target.value)}
+              className="mt-1.5 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <option value="">Select...</option>
+              {distributors.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.ration_id})</option>)}
+            </select>
+          </div>
+          <div>
+            <Label>Item</Label>
+            <select value={item} onChange={(e) => setItem(e.target.value)}
+              className="mt-1.5 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              {ENTITLED_ITEMS.map((it) => <option key={it.name} value={it.name}>{it.name} ({unitForItem(it.name)})</option>)}
+            </select>
+          </div>
+          <div>
+            <Label>Quantity ({unitForItem(item)})</Label>
+            <Input type="number" min="0" step="0.01" value={qty} onChange={(e) => setQty(e.target.value)} className="mt-1.5" />
+          </div>
+          <div>
+            <Label>Mode</Label>
+            <div className="mt-1.5 flex gap-2">
+              {(["add", "set"] as const).map((m) => (
+                <button key={m} onClick={() => setMode(m)}
+                  className={`rounded-lg border px-4 py-2 text-sm capitalize ${mode===m?"border-primary bg-primary/10 text-primary font-medium":"border-border"}`}>
+                  {m === "add" ? "Add to existing" : "Overwrite"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <Button onClick={save} disabled={busy} className="mt-5 w-full sm:w-auto">{busy ? "Saving..." : "Save Stock"}</Button>
+      </div>
+
+      {/* All stocks table */}
+      <div>
+        <h3 className="mb-3 font-display text-lg font-semibold">All Distributor Stocks</h3>
+        {loading ? <p className="text-sm text-muted-foreground">Loading...</p> : stocks.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No stocks recorded yet.</p>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-soft">
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="p-3">Distributor</th>
+                  <th className="p-3">Item</th>
+                  <th className="p-3 text-right">Assigned</th>
+                  <th className="p-3 text-right">Distributed</th>
+                  <th className="p-3 text-right">Remaining</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stocks.map((s) => {
+                  const a = Number(s.assigned_qty), d = Number(s.distributed_qty);
+                  const remaining = a - d;
+                  return (
+                    <tr key={s.id} className={`border-t border-border ${rowColor(remaining, a)}`}>
+                      <td className="p-3">{s.distributor?.name ?? "—"} <span className="text-xs text-muted-foreground">({s.distributor?.ration_id ?? "—"})</span></td>
+                      <td className="p-3 font-medium">{s.item_name}</td>
+                      <td className="p-3 text-right font-mono">{a} {s.unit}</td>
+                      <td className="p-3 text-right font-mono">{d} {s.unit}</td>
+                      <td className="p-3 text-right font-mono">{remaining} {s.unit}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
