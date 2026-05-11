@@ -62,6 +62,39 @@ export type Database = {
         }
         Relationships: []
       }
+      distributor_stocks: {
+        Row: {
+          assigned_qty: number
+          created_at: string
+          distributed_qty: number
+          distributor_id: string
+          id: string
+          item_name: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_qty?: number
+          created_at?: string
+          distributed_qty?: number
+          distributor_id: string
+          id?: string
+          item_name: string
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_qty?: number
+          created_at?: string
+          distributed_qty?: number
+          distributor_id?: string
+          id?: string
+          item_name?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       families: {
         Row: {
           created_at: string
@@ -236,7 +269,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      deduct_distributor_stock: {
+        Args: { _distributor_id: string; _items: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       user_role: "admin" | "distributor" | "customer"
