@@ -51,6 +51,7 @@ export function PageShell({ children, title, subtitle }: { children: React.React
           <BackButton />
           <div className="flex items-center gap-3">
             <Link to="/" className="text-xs font-medium uppercase tracking-widest text-muted-foreground hover:text-foreground">PDS</Link>
+            <LanguageToggle />
             <ThemeToggle />
           </div>
         </div>
