@@ -92,10 +92,11 @@ function TrackComplaintSection() {
   const [results, setResults] = useState<any[] | null>(null);
 
   async function track() {
-    if (!phone.trim() || !name.trim()) return toast.error("Enter phone and name.");
+    if (!isValidIndianMobile(phone)) return toast.error(INDIAN_MOBILE_ERROR);
+    if (!name.trim()) return toast.error("Enter your name.");
     setBusy(true);
     try {
-      const r = await trackComplaints({ data: { phone: phone.trim(), name: name.trim() } });
+      const r = await trackComplaints({ data: { phone: toE164India(phone), name: name.trim() } });
       setResults(r.complaints);
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
