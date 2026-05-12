@@ -24,10 +24,10 @@ function Complaint() {
   const [done, setDone] = useState(false);
 
   async function verifyPhone() {
-    if (phone.trim().length < 8) return toast.error("Enter a valid phone number.");
+    if (!isValidIndianMobile(phone)) return toast.error(INDIAN_MOBILE_ERROR);
     setBusy(true);
     try {
-      const r = await checkComplaintEligibility({ data: { phone: phone.trim() } });
+      const r = await checkComplaintEligibility({ data: { phone: toE164India(phone) } });
       if (r.name) setName(r.name);
       setStep("form");
     } catch (e) { toast.error((e as Error).message); }
