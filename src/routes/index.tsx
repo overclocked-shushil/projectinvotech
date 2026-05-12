@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { Shield, Truck, Users, MessageSquareWarning } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useLang, LanguageToggle, type Lang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   component: Index,
