@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { checkComplaintEligibility, submitComplaint, trackComplaints } from "@/server/pds.functions";
 import { NAME_RE } from "@/lib/constants";
+import { PhoneInput } from "@/components/PhoneInput";
+import { isValidIndianMobile, toE164India, INDIAN_MOBILE_ERROR } from "@/lib/phone";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/complaint")({ component: Complaint });
