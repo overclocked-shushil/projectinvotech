@@ -42,10 +42,12 @@ export const Route = createRootRoute({
   }),
   shellComponent: RootShell,
   component: () => (
-    <SessionProvider>
-      <Outlet />
-      <Toaster />
-    </SessionProvider>
+    <LangProvider>
+      <SessionProvider>
+        <Outlet />
+        <Toaster />
+      </SessionProvider>
+    </LangProvider>
   ),
   notFoundComponent: NotFoundComponent,
 });
