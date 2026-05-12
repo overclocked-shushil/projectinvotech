@@ -105,7 +105,7 @@ function DistHome() {
               <div className="mt-5 space-y-3">
                 <div className="rounded-lg bg-muted/50 p-3">
                   <p className="font-medium">{customer.name}</p>
-                  <p className="text-xs text-muted-foreground">{customer.ration_id} · {customer.phone ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">{customer.ration_id} · {formatIndianMobile(customer.phone)}</p>
                   <p className="mt-1 text-xs"><span className="font-semibold">Household size:</span> {householdSize} (head + {family.length} family member{family.length===1?"":"s"})</p>
                 </div>
                 {alreadyCollected && (
