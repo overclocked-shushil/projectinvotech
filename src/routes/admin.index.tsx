@@ -296,7 +296,7 @@ function UsersTable({ users, token }: { users: any[]; token: string }) {
                 <td className="p-3 font-mono">{u.ration_id}</td>
                 <td className="p-3">{u.name}</td>
                 <td className="p-3 capitalize">{u.role}</td>
-                <td className="p-3 text-muted-foreground">{u.phone ?? "—"}</td>
+                <td className="p-3 text-muted-foreground font-mono">{formatIndianMobile(u.phone)}</td>
                 <td className="p-3 text-right">
                   <div className="flex justify-end gap-2">
                     {u.role === "customer" && (
