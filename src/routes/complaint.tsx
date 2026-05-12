@@ -41,7 +41,7 @@ function Complaint() {
     if (reason.trim().length < 5) return toast.error("Please describe the reason.");
     setBusy(true);
     try {
-      await submitComplaint({ data: { name: n, phone: phone.trim(), branch: branch.trim(), reason: reason.trim() } });
+      await submitComplaint({ data: { name: n, phone: toE164India(phone), branch: branch.trim(), reason: reason.trim() } });
       setDone(true);
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
