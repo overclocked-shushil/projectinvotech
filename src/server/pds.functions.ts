@@ -119,19 +119,34 @@ export const logout = createServerFn({ method: "POST" })
 
 // ============ ADMIN: Create Distributor / Customer ID ============
 export const adminCreateId = createServerFn({ method: "POST" })
-  .inputValidator((d: { token: string; rationId: string; role: "distributor" | "customer"; name: string; phone: string }) =>
+  .inputValidator((d: { token: string; rationId: string; role: "distributor" | "customer"; name: string; phone: string; otpCode: string }) =>
     z.object({
       token: z.string(),
       rationId,
       role: z.enum(["distributor", "customer"]),
       name: z.string().trim().regex(NAME_RE, "Invalid name"),
       phone: phoneSchema,
+      otpCode: z.string().regex(/^\d{6}$/, "Enter the 6-digit OTP"),
     }).parse(d)
   )
   .handler(async ({ data }) => {
     const { user } = await requireSession(data.token);
     if (user.role !== "admin") throw new Error("Forbidden");
     const phone = data.phone.trim();
+
+    // Verify pending OTP for this phone
+    const { data: otp } = await supabaseAdmin
+      .from("otps")
+      .select("*")
+      .eq("ration_id", pendingPrefix(phone))
+      .eq("code", data.otpCode)
+      .eq("used", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!otp) throw new Error("Invalid OTP. Please verify the OTP sent to the customer's phone.");
+    if (new Date(otp.expires_at).getTime() < Date.now()) throw new Error("OTP expired. Please send a new OTP.");
+
     const { data: existingId } = await supabaseAdmin.from("users").select("id").eq("ration_id", data.rationId).maybeSingle();
     if (existingId) throw new Error("Ration Number already exists");
     const { data: reserved } = await supabaseAdmin.from("deleted_ration_ids").select("ration_id").eq("ration_id", data.rationId).maybeSingle();
@@ -144,7 +159,28 @@ export const adminCreateId = createServerFn({ method: "POST" })
       name: data.name.trim(),
       phone,
     });
+    await supabaseAdmin.from("otps").update({ used: true }).eq("id", otp.id);
     return { ok: true };
+  });
+
+// Admin sends an OTP to a phone number during registration (phone has no user yet).
+export const adminSendRegistrationOtp = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string; phone: string }) =>
+    z.object({ token: z.string(), phone: phoneSchema }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "admin") throw new Error("Forbidden");
+    const phone = data.phone.trim();
+    const { data: existingPhone } = await supabaseAdmin.from("users").select("id").eq("phone", phone).maybeSingle();
+    if (existingPhone) throw new Error("This number is already registered.");
+
+    await supabaseAdmin.from("otps").update({ used: true }).eq("ration_id", pendingPrefix(phone)).eq("used", false);
+    const code = generateOtp();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    await supabaseAdmin.from("otps").insert({ ration_id: pendingPrefix(phone), code, expires_at: expiresAt });
+    const sms = await sendSms(phone, `Your PDS registration OTP is ${code}. Valid for 5 minutes.`);
+    return { ok: true, maskedPhone: maskPhone(phone), expiresAt, devOtp: sms.debugCode ? code : undefined };
   });
 
 // ============ ADMIN: list ============
