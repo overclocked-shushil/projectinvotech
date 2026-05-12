@@ -12,7 +12,10 @@ function startOfThisMonthIso(): string {
 
 const rationId = z.string().regex(RATION_ID_RE, "Invalid Ration Number format");
 const portal = z.enum(["admin", "distributor", "customer"]);
-const phoneSchema = z.string().trim().min(8).max(20);
+// Strict Indian mobile: +91 followed by a 10-digit number starting with 6-9.
+const phoneSchema = z.string().trim().regex(/^\+91[6-9]\d{9}$/, "Please enter a valid Indian mobile number");
+// Pending-registration OTP marker stored in otps.ration_id
+const pendingPrefix = (phone: string) => `__pending:${phone}`;
 
 // ============ REQUEST OTP ============
 export const requestOtp = createServerFn({ method: "POST" })
