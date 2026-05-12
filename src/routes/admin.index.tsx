@@ -28,8 +28,20 @@ function AdminHome() {
   const [role, setRole] = useState<"distributor" | "customer">("distributor");
   const [rid, setRid] = useState("");
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(""); // 10 digits, no prefix
   const [busy, setBusy] = useState(false);
+  // OTP state for registration
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpExpiresAt, setOtpExpiresAt] = useState<string | null>(null);
+  const [resendIn, setResendIn] = useState(0);
+  const [otpBusy, setOtpBusy] = useState(false);
+
+  useEffect(() => {
+    if (!otpSent) return;
+    const id = window.setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearInterval(id);
+  }, [otpSent]);
 
   async function refresh() {
     if (!token) return;
@@ -43,16 +55,37 @@ function AdminHome() {
     return () => window.removeEventListener("admin:refresh", h);
   }, [token]);
 
+  function resetCreateForm() {
+    setRid(""); setName(""); setPhone("");
+    setOtpSent(false); setOtpCode(""); setOtpExpiresAt(null); setResendIn(0);
+  }
+
+  async function sendRegistrationOtp() {
+    if (!isValidIndianMobile(phone)) return toast.error(INDIAN_MOBILE_ERROR);
+    setOtpBusy(true);
+    try {
+      const r = await adminSendRegistrationOtp({ data: { token: token!, phone: toE164India(phone) } });
+      setOtpSent(true);
+      setOtpExpiresAt(r.expiresAt);
+      setResendIn(30);
+      if (r.devOtp) toast.info(`Dev OTP: ${r.devOtp}`, { duration: 8000 });
+      else toast.success(`OTP sent to ${r.maskedPhone}`);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setOtpBusy(false); }
+  }
+
   async function create() {
     const id = rid.trim().toUpperCase(); const n = name.trim();
     if (!RATION_ID_RE.test(id)) return toast.error("Invalid Ration Number.");
     if (!NAME_RE.test(n)) return toast.error("Invalid name.");
-    if (phone.trim().length < 8) return toast.error("Invalid phone.");
+    if (!isValidIndianMobile(phone)) return toast.error(INDIAN_MOBILE_ERROR);
+    if (!otpSent) return toast.error("Please send and verify OTP first.");
+    if (!/^\d{6}$/.test(otpCode)) return toast.error("Enter the 6-digit OTP.");
     setBusy(true);
     try {
-      await adminCreateId({ data: { token: token!, rationId: id, role, name: n, phone: phone.trim() } });
+      await adminCreateId({ data: { token: token!, rationId: id, role, name: n, phone: toE164India(phone), otpCode } });
       toast.success(`${role} created: ${id}`);
-      setRid(""); setName(""); setPhone("");
+      resetCreateForm();
       refresh();
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
