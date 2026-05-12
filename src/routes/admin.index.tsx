@@ -239,7 +239,7 @@ function ComplaintsTab({ complaints, token, onChange }: { complaints: any[]; tok
           <div key={c.id} className="rounded-xl border border-border bg-card p-4 shadow-soft">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="font-medium">{c.name} <span className="text-xs text-muted-foreground">· {c.phone}</span></p>
+                <p className="font-medium">{c.name} <span className="text-xs text-muted-foreground">· {formatIndianMobile(c.phone)}</span></p>
                 <p className="mt-1 text-xs text-muted-foreground">Branch: {c.branch}</p>
               </div>
               <div className="flex items-center gap-2">
