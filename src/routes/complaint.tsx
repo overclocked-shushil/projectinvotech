@@ -118,7 +118,7 @@ function TrackComplaintSection() {
       <h2 className="font-display text-xl font-semibold">Track Your Complaint</h2>
       <p className="mt-1 text-sm text-muted-foreground">Enter your registered details to view complaint status.</p>
       <div className="mt-4 space-y-3">
-        <div><Label>Phone Number</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+919999999999" className="mt-1.5" /></div>
+        <div><Label>Phone Number</Label><PhoneInput value={phone} onChange={setPhone} className="mt-1.5" /></div>
         <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1.5" /></div>
         <Button className="w-full" onClick={track} disabled={busy}>{busy ? "Tracking..." : "Track"}</Button>
       </div>
