@@ -7,6 +7,7 @@ import { lookupCustomer, recordCollection, myTransactions, myStock } from "@/ser
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RATION_ID_RE } from "@/lib/constants";
+import { formatIndianMobile } from "@/lib/phone";
 import { toast } from "sonner";
 import { TransactionList } from "@/components/TransactionList";
 import { downloadTransactionPdf } from "@/lib/pdf";
