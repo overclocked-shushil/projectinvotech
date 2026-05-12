@@ -47,33 +47,12 @@ const CARD: Record<string, Record<Lang, { title: string; desc: string }>> = {
 };
 
 function Index() {
-  const [lang, setLang] = useState<Lang>("en");
-  useEffect(() => {
-    const saved = (typeof window !== "undefined" && localStorage.getItem(LANG_KEY)) as Lang | null;
-    if (saved && LANG_ORDER.includes(saved)) setLang(saved);
-  }, []);
-  function cycle() {
-    const idx = LANG_ORDER.indexOf(lang);
-    const next = LANG_ORDER[(idx + 1) % LANG_ORDER.length];
-    setLang(next);
-    try { localStorage.setItem(LANG_KEY, next); } catch {}
-  }
+  const { lang } = useLang();
 
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex max-w-6xl items-center justify-end gap-2 px-6 pt-6">
-        <button
-          onClick={cycle}
-          className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-soft transition-colors hover:bg-accent"
-          aria-label="Change language"
-          title={`Current: ${LANG_LABEL[lang]}`}
-        >
-          {LANG_ORDER.map((l, i) => (
-            <span key={l} className={l === lang ? "text-primary" : "text-muted-foreground"}>
-              {LANG_LABEL[l]}{i < LANG_ORDER.length - 1 ? " | " : ""}
-            </span>
-          ))}
-        </button>
+        <LanguageToggle />
         <ThemeToggle />
       </div>
       <header className="mx-auto max-w-6xl px-6 pt-8 pb-8">
