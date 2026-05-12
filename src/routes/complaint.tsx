@@ -60,15 +60,16 @@ function Complaint() {
           <div className="space-y-4">
             <div>
               <Label>Registered Phone Number</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+919999999999" className="mt-1.5" />
+              <PhoneInput value={phone} onChange={setPhone} className="mt-1.5" />
+              {phone && !isValidIndianMobile(phone) && <p className="mt-1 text-xs text-destructive">{INDIAN_MOBILE_ERROR}</p>}
               <p className="mt-1.5 text-xs text-muted-foreground">We will verify this number against the registered customer database.</p>
             </div>
-            <Button className="w-full" onClick={verifyPhone} disabled={busy}>{busy ? "Checking..." : "Continue"}</Button>
+            <Button className="w-full" onClick={verifyPhone} disabled={busy || !isValidIndianMobile(phone)}>{busy ? "Checking..." : "Continue"}</Button>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm">
-              Filing as <span className="font-mono">{phone}</span>
+              Filing as <span className="font-mono">+91 {phone.slice(0,5)} {phone.slice(5)}</span>
             </div>
             <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1.5" /></div>
             <div><Label>Branch / Location</Label><Input value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="e.g., Sector 12 PDS shop" className="mt-1.5" /></div>
