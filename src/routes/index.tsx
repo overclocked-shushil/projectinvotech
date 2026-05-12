@@ -8,10 +8,6 @@ export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: "Public Distribution System" }, { name: "description", content: "Login portal for Admin, Distributors, Customers and the public." }] }),
 });
 
-type Lang = "en" | "hi" | "kn";
-const LANG_KEY = "pds.lang";
-const LANG_ORDER: Lang[] = ["en", "hi", "kn"];
-const LANG_LABEL: Record<Lang, string> = { en: "EN", hi: "हिं", kn: "ಕನ್ನಡ" };
 
 const T = {
   heading: { en: "Public Distribution System", hi: "सार्वजनिक वितरण प्रणाली", kn: "ಸಾರ್ವಜನಿಕ ವಿತರಣಾ ವ್ಯವಸ್ಥೆ" },
