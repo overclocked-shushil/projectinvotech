@@ -554,7 +554,7 @@ function StockManagement({
           </div>
           <div>
             <Label>Quantity ({unitForItem(item)})</Label>
-            <Input type="number" min="0" step="0.01" value={qty} onChange={(e) => setQty(e.target.value)} className="mt-1.5" />
+            <Input type="number" min="0" step="0.01" value={qty} onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }} onChange={(e) => { const v = e.target.value; if (v === "" || Number(v) >= 0) setQty(v); }} className="mt-1.5" />
           </div>
           <div>
             <Label>Mode</Label>
