@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { checkComplaintEligibility, submitComplaint, trackComplaints } from "@/server/pds.functions";
 import { NAME_RE } from "@/lib/constants";
+import { PhoneInput } from "@/components/PhoneInput";
+import { isValidIndianMobile, toE164India, INDIAN_MOBILE_ERROR } from "@/lib/phone";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/complaint")({ component: Complaint });
@@ -22,10 +24,10 @@ function Complaint() {
   const [done, setDone] = useState(false);
 
   async function verifyPhone() {
-    if (phone.trim().length < 8) return toast.error("Enter a valid phone number.");
+    if (!isValidIndianMobile(phone)) return toast.error(INDIAN_MOBILE_ERROR);
     setBusy(true);
     try {
-      const r = await checkComplaintEligibility({ data: { phone: phone.trim() } });
+      const r = await checkComplaintEligibility({ data: { phone: toE164India(phone) } });
       if (r.name) setName(r.name);
       setStep("form");
     } catch (e) { toast.error((e as Error).message); }
@@ -39,7 +41,7 @@ function Complaint() {
     if (reason.trim().length < 5) return toast.error("Please describe the reason.");
     setBusy(true);
     try {
-      await submitComplaint({ data: { name: n, phone: phone.trim(), branch: branch.trim(), reason: reason.trim() } });
+      await submitComplaint({ data: { name: n, phone: toE164India(phone), branch: branch.trim(), reason: reason.trim() } });
       setDone(true);
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
@@ -58,15 +60,16 @@ function Complaint() {
           <div className="space-y-4">
             <div>
               <Label>Registered Phone Number</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+919999999999" className="mt-1.5" />
+              <PhoneInput value={phone} onChange={setPhone} className="mt-1.5" />
+              {phone && !isValidIndianMobile(phone) && <p className="mt-1 text-xs text-destructive">{INDIAN_MOBILE_ERROR}</p>}
               <p className="mt-1.5 text-xs text-muted-foreground">We will verify this number against the registered customer database.</p>
             </div>
-            <Button className="w-full" onClick={verifyPhone} disabled={busy}>{busy ? "Checking..." : "Continue"}</Button>
+            <Button className="w-full" onClick={verifyPhone} disabled={busy || !isValidIndianMobile(phone)}>{busy ? "Checking..." : "Continue"}</Button>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm">
-              Filing as <span className="font-mono">{phone}</span>
+              Filing as <span className="font-mono">+91 {phone.slice(0,5)} {phone.slice(5)}</span>
             </div>
             <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1.5" /></div>
             <div><Label>Branch / Location</Label><Input value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="e.g., Sector 12 PDS shop" className="mt-1.5" /></div>
@@ -89,10 +92,11 @@ function TrackComplaintSection() {
   const [results, setResults] = useState<any[] | null>(null);
 
   async function track() {
-    if (!phone.trim() || !name.trim()) return toast.error("Enter phone and name.");
+    if (!isValidIndianMobile(phone)) return toast.error(INDIAN_MOBILE_ERROR);
+    if (!name.trim()) return toast.error("Enter your name.");
     setBusy(true);
     try {
-      const r = await trackComplaints({ data: { phone: phone.trim(), name: name.trim() } });
+      const r = await trackComplaints({ data: { phone: toE164India(phone), name: name.trim() } });
       setResults(r.complaints);
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
@@ -114,7 +118,7 @@ function TrackComplaintSection() {
       <h2 className="font-display text-xl font-semibold">Track Your Complaint</h2>
       <p className="mt-1 text-sm text-muted-foreground">Enter your registered details to view complaint status.</p>
       <div className="mt-4 space-y-3">
-        <div><Label>Phone Number</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+919999999999" className="mt-1.5" /></div>
+        <div><Label>Phone Number</Label><PhoneInput value={phone} onChange={setPhone} className="mt-1.5" /></div>
         <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1.5" /></div>
         <Button className="w-full" onClick={track} disabled={busy}>{busy ? "Tracking..." : "Track"}</Button>
       </div>

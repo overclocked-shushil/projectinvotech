@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { SessionProvider } from "@/lib/session";
+import { LangProvider } from "@/lib/i18n";
 import { Toaster } from "@/components/ui/sonner";
 import appCss from "../styles.css?url";
 
@@ -41,10 +42,12 @@ export const Route = createRootRoute({
   }),
   shellComponent: RootShell,
   component: () => (
-    <SessionProvider>
-      <Outlet />
-      <Toaster />
-    </SessionProvider>
+    <LangProvider>
+      <SessionProvider>
+        <Outlet />
+        <Toaster />
+      </SessionProvider>
+    </LangProvider>
   ),
   notFoundComponent: NotFoundComponent,
 });

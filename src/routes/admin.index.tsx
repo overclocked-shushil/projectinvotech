@@ -3,12 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSession } from "@/lib/session";
-import { adminCreateId, adminList, adminUpdateComplaintStatus, adminAddFamily, adminUpdateFamily, adminDeleteFamily, adminListFamily, adminDeleteUser, adminListStocks, adminSetStock } from "@/server/pds.functions";
+import { adminCreateId, adminList, adminUpdateComplaintStatus, adminAddFamily, adminUpdateFamily, adminDeleteFamily, adminListFamily, adminDeleteUser, adminListStocks, adminSetStock, adminSendRegistrationOtp } from "@/server/pds.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { NAME_RE, RATION_ID_RE, RELATIONS, maxDobString, isOldEnough, AGE_ERROR, ENTITLED_ITEMS, unitForItem } from "@/lib/constants";
+import { PhoneInput } from "@/components/PhoneInput";
+import { isValidIndianMobile, toE164India, formatIndianMobile, INDIAN_MOBILE_ERROR } from "@/lib/phone";
 import { toast } from "sonner";
 import { TransactionList } from "@/components/TransactionList";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,8 +28,20 @@ function AdminHome() {
   const [role, setRole] = useState<"distributor" | "customer">("distributor");
   const [rid, setRid] = useState("");
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(""); // 10 digits, no prefix
   const [busy, setBusy] = useState(false);
+  // OTP state for registration
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpExpiresAt, setOtpExpiresAt] = useState<string | null>(null);
+  const [resendIn, setResendIn] = useState(0);
+  const [otpBusy, setOtpBusy] = useState(false);
+
+  useEffect(() => {
+    if (!otpSent) return;
+    const id = window.setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearInterval(id);
+  }, [otpSent]);
 
   async function refresh() {
     if (!token) return;
@@ -41,16 +55,37 @@ function AdminHome() {
     return () => window.removeEventListener("admin:refresh", h);
   }, [token]);
 
+  function resetCreateForm() {
+    setRid(""); setName(""); setPhone("");
+    setOtpSent(false); setOtpCode(""); setOtpExpiresAt(null); setResendIn(0);
+  }
+
+  async function sendRegistrationOtp() {
+    if (!isValidIndianMobile(phone)) return toast.error(INDIAN_MOBILE_ERROR);
+    setOtpBusy(true);
+    try {
+      const r = await adminSendRegistrationOtp({ data: { token: token!, phone: toE164India(phone) } });
+      setOtpSent(true);
+      setOtpExpiresAt(r.expiresAt);
+      setResendIn(30);
+      if (r.devOtp) toast.info(`Dev OTP: ${r.devOtp}`, { duration: 8000 });
+      else toast.success(`OTP sent to ${r.maskedPhone}`);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setOtpBusy(false); }
+  }
+
   async function create() {
     const id = rid.trim().toUpperCase(); const n = name.trim();
     if (!RATION_ID_RE.test(id)) return toast.error("Invalid Ration Number.");
     if (!NAME_RE.test(n)) return toast.error("Invalid name.");
-    if (phone.trim().length < 8) return toast.error("Invalid phone.");
+    if (!isValidIndianMobile(phone)) return toast.error(INDIAN_MOBILE_ERROR);
+    if (!otpSent) return toast.error("Please send and verify OTP first.");
+    if (!/^\d{6}$/.test(otpCode)) return toast.error("Enter the 6-digit OTP.");
     setBusy(true);
     try {
-      await adminCreateId({ data: { token: token!, rationId: id, role, name: n, phone: phone.trim() } });
+      await adminCreateId({ data: { token: token!, rationId: id, role, name: n, phone: toE164India(phone), otpCode } });
       toast.success(`${role} created: ${id}`);
-      setRid(""); setName(""); setPhone("");
+      resetCreateForm();
       refresh();
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
@@ -93,8 +128,30 @@ function AdminHome() {
             </div>
             <div><Label>Ration Number</Label><Input value={rid} onChange={(e)=>setRid(e.target.value.toUpperCase())} placeholder="ABCD123456" maxLength={10} className="mt-1.5 font-mono tracking-widest" /></div>
             <div><Label>Name</Label><Input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Full name" className="mt-1.5" /></div>
-            <div><Label>Phone (with country code)</Label><Input value={phone} onChange={(e)=>setPhone(e.target.value)} placeholder="+919999999989" className="mt-1.5" /></div>
-            <Button onClick={create} disabled={busy} className="w-full">{busy ? "Creating..." : "Create ID"}</Button>
+            <div>
+              <Label>Phone Number</Label>
+              <div className="mt-1.5 flex gap-2">
+                <PhoneInput value={phone} onChange={(d) => { setPhone(d); if (otpSent) { setOtpSent(false); setOtpCode(""); } }} disabled={otpSent} className="flex-1" />
+                <Button type="button" variant="outline" onClick={sendRegistrationOtp} disabled={otpBusy || !isValidIndianMobile(phone) || (otpSent && resendIn > 0)}>
+                  {otpBusy ? "Sending..." : otpSent ? (resendIn > 0 ? `Resend ${resendIn}s` : "Resend OTP") : "Send OTP"}
+                </Button>
+              </div>
+              {phone && !isValidIndianMobile(phone) && <p className="mt-1 text-xs text-destructive">{INDIAN_MOBILE_ERROR}</p>}
+            </div>
+            {otpSent && (
+              <div>
+                <Label>Enter 6-digit OTP</Label>
+                <Input
+                  inputMode="numeric"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="••••••"
+                  className="mt-1.5 text-center font-mono text-xl tracking-[0.5em]"
+                />
+                {otpExpiresAt && <p className="mt-1 text-xs text-muted-foreground">OTP valid until {new Date(otpExpiresAt).toLocaleTimeString()}.</p>}
+              </div>
+            )}
+            <Button onClick={create} disabled={busy || !otpSent} className="w-full">{busy ? "Creating..." : "Verify OTP & Create ID"}</Button>
           </div>
         </div>
       )}
@@ -182,7 +239,7 @@ function ComplaintsTab({ complaints, token, onChange }: { complaints: any[]; tok
           <div key={c.id} className="rounded-xl border border-border bg-card p-4 shadow-soft">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="font-medium">{c.name} <span className="text-xs text-muted-foreground">· {c.phone}</span></p>
+                <p className="font-medium">{c.name} <span className="text-xs text-muted-foreground">· {formatIndianMobile(c.phone)}</span></p>
                 <p className="mt-1 text-xs text-muted-foreground">Branch: {c.branch}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -239,7 +296,7 @@ function UsersTable({ users, token }: { users: any[]; token: string }) {
                 <td className="p-3 font-mono">{u.ration_id}</td>
                 <td className="p-3">{u.name}</td>
                 <td className="p-3 capitalize">{u.role}</td>
-                <td className="p-3 text-muted-foreground">{u.phone ?? "—"}</td>
+                <td className="p-3 text-muted-foreground font-mono">{formatIndianMobile(u.phone)}</td>
                 <td className="p-3 text-right">
                   <div className="flex justify-end gap-2">
                     {u.role === "customer" && (
@@ -497,7 +554,7 @@ function StockManagement({
           </div>
           <div>
             <Label>Quantity ({unitForItem(item)})</Label>
-            <Input type="number" min="0" step="0.01" value={qty} onChange={(e) => setQty(e.target.value)} className="mt-1.5" />
+            <Input type="number" min="0" step="0.01" value={qty} onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }} onChange={(e) => { const v = e.target.value; if (v === "" || Number(v) >= 0) setQty(v); }} className="mt-1.5" />
           </div>
           <div>
             <Label>Mode</Label>

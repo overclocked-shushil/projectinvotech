@@ -1,6 +1,7 @@
 import { Link, useRouter, useLocation } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageToggle, useLang } from "@/lib/i18n";
 
 function dashboardRoot(pathname: string): string {
   if (pathname.startsWith("/admin")) return "/admin";
@@ -12,6 +13,7 @@ function dashboardRoot(pathname: string): string {
 export function BackButton({ fallback }: { fallback?: string }) {
   const router = useRouter();
   const location = useLocation();
+  const { t } = useLang();
   const root = fallback ?? dashboardRoot(location.pathname);
   const isAtRoot = location.pathname === root || location.pathname === root + "/";
 
@@ -20,10 +22,8 @@ export function BackButton({ fallback }: { fallback?: string }) {
   return (
     <button
       onClick={() => {
-        // If history has a previous entry, use it; otherwise go to dashboard root.
         if (typeof window !== "undefined" && window.history.length > 1) {
           router.history.back();
-          // After a short delay, if we're still on the same login/landing page, fallback.
           setTimeout(() => {
             const path = window.location.pathname;
             if (path === "/" || path.endsWith("/login")) {
@@ -35,10 +35,10 @@ export function BackButton({ fallback }: { fallback?: string }) {
         }
       }}
       className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-      aria-label="Back"
+      aria-label={t("back")}
     >
       <ArrowLeft className="h-4 w-4" />
-      Back
+      {t("back")}
     </button>
   );
 }
@@ -51,6 +51,7 @@ export function PageShell({ children, title, subtitle }: { children: React.React
           <BackButton />
           <div className="flex items-center gap-3">
             <Link to="/" className="text-xs font-medium uppercase tracking-widest text-muted-foreground hover:text-foreground">PDS</Link>
+            <LanguageToggle />
             <ThemeToggle />
           </div>
         </div>
