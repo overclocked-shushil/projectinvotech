@@ -110,7 +110,7 @@ function AdminHome() {
             </button>
           ))}
         </div>
-        <Button variant="outline" size="sm" onClick={signOut}>{useLang().t("signOut")}</Button>
+        <Button variant="outline" size="sm" onClick={signOut}>Sign Out</Button>
       </div>
 
       {tab === "create" && (
