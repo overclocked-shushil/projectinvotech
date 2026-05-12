@@ -1,6 +1,7 @@
 import { Link, useRouter, useLocation } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageToggle, useLang } from "@/lib/i18n";
 
 function dashboardRoot(pathname: string): string {
   if (pathname.startsWith("/admin")) return "/admin";
