@@ -128,8 +128,30 @@ function AdminHome() {
             </div>
             <div><Label>Ration Number</Label><Input value={rid} onChange={(e)=>setRid(e.target.value.toUpperCase())} placeholder="ABCD123456" maxLength={10} className="mt-1.5 font-mono tracking-widest" /></div>
             <div><Label>Name</Label><Input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Full name" className="mt-1.5" /></div>
-            <div><Label>Phone (with country code)</Label><Input value={phone} onChange={(e)=>setPhone(e.target.value)} placeholder="+919999999989" className="mt-1.5" /></div>
-            <Button onClick={create} disabled={busy} className="w-full">{busy ? "Creating..." : "Create ID"}</Button>
+            <div>
+              <Label>Phone Number</Label>
+              <div className="mt-1.5 flex gap-2">
+                <PhoneInput value={phone} onChange={(d) => { setPhone(d); if (otpSent) { setOtpSent(false); setOtpCode(""); } }} disabled={otpSent} className="flex-1" />
+                <Button type="button" variant="outline" onClick={sendRegistrationOtp} disabled={otpBusy || !isValidIndianMobile(phone) || (otpSent && resendIn > 0)}>
+                  {otpBusy ? "Sending..." : otpSent ? (resendIn > 0 ? `Resend ${resendIn}s` : "Resend OTP") : "Send OTP"}
+                </Button>
+              </div>
+              {phone && !isValidIndianMobile(phone) && <p className="mt-1 text-xs text-destructive">{INDIAN_MOBILE_ERROR}</p>}
+            </div>
+            {otpSent && (
+              <div>
+                <Label>Enter 6-digit OTP</Label>
+                <Input
+                  inputMode="numeric"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="••••••"
+                  className="mt-1.5 text-center font-mono text-xl tracking-[0.5em]"
+                />
+                {otpExpiresAt && <p className="mt-1 text-xs text-muted-foreground">OTP valid until {new Date(otpExpiresAt).toLocaleTimeString()}.</p>}
+              </div>
+            )}
+            <Button onClick={create} disabled={busy || !otpSent} className="w-full">{busy ? "Creating..." : "Verify OTP & Create ID"}</Button>
           </div>
         </div>
       )}
