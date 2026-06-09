@@ -27,8 +27,7 @@ function Complaint() {
     if (!isValidIndianMobile(phone)) return toast.error(INDIAN_MOBILE_ERROR);
     setBusy(true);
     try {
-      const r = await checkComplaintEligibility({ data: { phone: toE164India(phone) } });
-      if (r.name) setName(r.name);
+      await checkComplaintEligibility({ data: { phone: toE164India(phone) } });
       setStep("form");
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
