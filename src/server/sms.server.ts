@@ -7,8 +7,14 @@ export async function sendSms(to: string, body: string): Promise<{ ok: boolean; 
   const TWILIO_FROM = process.env.TWILIO_FROM_NUMBER;
 
   if (!LOVABLE_API_KEY || !TWILIO_API_KEY || !TWILIO_FROM) {
+    // SMS provider not configured. Only expose the code for local development —
+    // never leak it in the API response on hosted/production deployments.
+    const isDev = process.env.NODE_ENV === "development";
     console.log(`[SMS:DEV] -> ${to}: ${body}`);
-    return { ok: true, debugCode: body };
+    if (isDev) {
+      return { ok: true, debugCode: body };
+    }
+    return { ok: false, error: "SMS service is not configured. Please contact the administrator." };
   }
 
   try {

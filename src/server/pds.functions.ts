@@ -53,6 +53,7 @@ export const requestOtp = createServerFn({ method: "POST" })
     await supabaseAdmin.from("otps").insert({ ration_id: user.ration_id, code, expires_at: expiresAt });
 
     const sms = await sendSms(user.phone, `Your PDS OTP is ${code}. Valid for 5 minutes.`);
+    if (!sms.ok) throw new Error(sms.error ?? "Failed to send OTP. Please try again later.");
 
     return {
       ok: true,
@@ -180,6 +181,7 @@ export const adminSendRegistrationOtp = createServerFn({ method: "POST" })
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
     await supabaseAdmin.from("otps").insert({ ration_id: pendingPrefix(phone), code, expires_at: expiresAt });
     const sms = await sendSms(phone, `Your PDS registration OTP is ${code}. Valid for 5 minutes.`);
+    if (!sms.ok) throw new Error(sms.error ?? "Failed to send OTP. Please try again later.");
     return { ok: true, maskedPhone: maskPhone(phone), expiresAt, devOtp: sms.debugCode ? code : undefined };
   });
 
@@ -456,7 +458,8 @@ export const checkComplaintEligibility = createServerFn({ method: "POST" })
     if (!user) {
       throw new Error("You are not a registered customer. Only registered customers can file complaints.");
     }
-    return { ok: true, name: user.name };
+    // Do not return the customer's name to avoid leaking PII for enumerated phone numbers.
+    return { ok: true };
   });
 
 export const submitComplaint = createServerFn({ method: "POST" })
