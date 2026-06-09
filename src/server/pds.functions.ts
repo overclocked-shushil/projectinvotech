@@ -458,7 +458,8 @@ export const checkComplaintEligibility = createServerFn({ method: "POST" })
     if (!user) {
       throw new Error("You are not a registered customer. Only registered customers can file complaints.");
     }
-    return { ok: true, name: user.name };
+    // Do not return the customer's name to avoid leaking PII for enumerated phone numbers.
+    return { ok: true };
   });
 
 export const submitComplaint = createServerFn({ method: "POST" })
