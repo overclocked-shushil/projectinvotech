@@ -181,6 +181,7 @@ export const adminSendRegistrationOtp = createServerFn({ method: "POST" })
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
     await supabaseAdmin.from("otps").insert({ ration_id: pendingPrefix(phone), code, expires_at: expiresAt });
     const sms = await sendSms(phone, `Your PDS registration OTP is ${code}. Valid for 5 minutes.`);
+    if (!sms.ok) throw new Error(sms.error ?? "Failed to send OTP. Please try again later.");
     return { ok: true, maskedPhone: maskPhone(phone), expiresAt, devOtp: sms.debugCode ? code : undefined };
   });
 
