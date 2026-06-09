@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { requestOtp, verifyOtp } from "@/server/pds.functions";
+import { requestOtp, verifyOtp } from "@/lib/pds.functions";
 import { useSession } from "@/lib/session";
 import { RATION_ID_RE } from "@/lib/constants";
 import { PageShell } from "@/components/PageShell";

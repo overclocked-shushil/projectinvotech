@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSession } from "@/lib/session";
-import { listFamily, myTransactions } from "@/server/pds.functions";
+import { listFamily, myTransactions } from "@/lib/pds.functions";
 import { Button } from "@/components/ui/button";
 import { TransactionList } from "@/components/TransactionList";
 
