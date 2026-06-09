@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { randomBytes } from "crypto";
+import { randomBytes, randomInt } from "crypto";
 
 export const ADMIN_PHONE = "+917021423661";
 
@@ -59,7 +59,8 @@ export async function requireSession(token: string | undefined | null) {
 }
 
 export function generateOtp(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  // Cryptographically secure 6-digit code in [100000, 999999]
+  return String(randomInt(100000, 1000000));
 }
 
 export function generateToken(): string {
