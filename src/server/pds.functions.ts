@@ -53,6 +53,7 @@ export const requestOtp = createServerFn({ method: "POST" })
     await supabaseAdmin.from("otps").insert({ ration_id: user.ration_id, code, expires_at: expiresAt });
 
     const sms = await sendSms(user.phone, `Your PDS OTP is ${code}. Valid for 5 minutes.`);
+    if (!sms.ok) throw new Error(sms.error ?? "Failed to send OTP. Please try again later.");
 
     return {
       ok: true,
