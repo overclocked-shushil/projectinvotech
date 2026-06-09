@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { me as meFn, logout as logoutFn } from "@/server/pds.functions";
+import { me as meFn, logout as logoutFn } from "@/lib/pds.functions";
 
 export type SessionUser = { id: string; rationId: string; name: string; role: "admin" | "distributor" | "customer"; phone: string | null };
 

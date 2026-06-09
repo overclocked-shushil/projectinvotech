@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSession } from "@/lib/session";
-import { lookupCustomer, recordCollection, myTransactions, myStock } from "@/server/pds.functions";
+import { lookupCustomer, recordCollection, myTransactions, myStock } from "@/lib/pds.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RATION_ID_RE } from "@/lib/constants";

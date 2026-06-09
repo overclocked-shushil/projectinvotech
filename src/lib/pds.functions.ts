@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendSms, maskPhone } from "./sms.server";
-import { RATION_ID_RE, NAME_RE, generateOtp, generateToken, requireSession, ensureAdminSeeded, isOldEnough, type Role } from "./auth.server";
+import { sendSms, maskPhone } from "@/server/sms.server";
+import { RATION_ID_RE, NAME_RE, generateOtp, generateToken, requireSession, ensureAdminSeeded, isOldEnough, type Role } from "@/server/auth.server";
 import { ENTITLED_ITEMS, entitledQty, unitForItem } from "@/lib/constants";
 
 function startOfThisMonthIso(): string {
