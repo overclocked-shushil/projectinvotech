@@ -621,3 +621,46 @@ export const myStock = createServerFn({ method: "POST" })
       .order("item_name");
     return { stocks: rows ?? [] };
   });
+
+// Customer read-only view of the stock held by their distributor.
+// The distributor is derived from the customer's most recent collection.
+export const customerStock = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string }) => z.object({ token: z.string() }).parse(d))
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "customer") throw new Error("Forbidden");
+
+    const { data: lastCollection } = await supabaseAdmin
+      .from("ration_collections")
+      .select("distributor_id")
+      .eq("customer_id", user.id)
+      .order("date_received", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!lastCollection?.distributor_id) {
+      return { distributor: null, stocks: [] };
+    }
+
+    const { data: dist } = await supabaseAdmin
+      .from("users")
+      .select("name, ration_id")
+      .eq("id", lastCollection.distributor_id)
+      .maybeSingle();
+
+    const { data: rows } = await supabaseAdmin
+      .from("distributor_stocks")
+      .select("item_name, unit, assigned_qty, distributed_qty")
+      .eq("distributor_id", lastCollection.distributor_id)
+      .order("item_name");
+
+    return {
+      distributor: dist ? { name: dist.name, rationId: dist.ration_id } : null,
+      stocks: (rows ?? []).map((s) => ({
+        itemName: s.item_name,
+        unit: s.unit,
+        available: Number(s.assigned_qty) - Number(s.distributed_qty),
+        assigned: Number(s.assigned_qty),
+      })),
+    };
+  });
