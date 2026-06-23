@@ -428,10 +428,11 @@ const itemSchema = z.object({
 });
 
 export const recordCollection = createServerFn({ method: "POST" })
-  .inputValidator((d: { token: string; customerRationId: string; items: { name: string; quantity: number; unit: string }[] }) =>
+  .inputValidator((d: { token: string; customerRationId: string; otpCode: string; items: { name: string; quantity: number; unit: string }[] }) =>
     z.object({
       token: z.string(),
       customerRationId: rationId,
+      otpCode: z.string().regex(/^\d{6}$/, "Enter the 6-digit OTP sent to the customer"),
       items: z.array(itemSchema).min(1).max(20),
     }).parse(d)
   )
@@ -453,6 +454,20 @@ export const recordCollection = createServerFn({ method: "POST" })
       throw new Error("Ration already distributed to this customer for this month.");
     }
 
+    // Verify the OTP the customer received and shared with the distributor
+    const marker = collectPrefix(c.ration_id);
+    const { data: otp } = await supabaseAdmin
+      .from("otps")
+      .select("*")
+      .eq("ration_id", marker)
+      .eq("code", data.otpCode)
+      .eq("used", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!otp) throw new Error("Invalid OTP. Please verify the OTP sent to the customer's phone.");
+    if (new Date(otp.expires_at).getTime() < Date.now()) throw new Error("OTP expired. Please send a new OTP.");
+
     // Atomic stock deduction (skip "Other" — no stock tracking for free-form items)
     const trackable = data.items.filter((i) => i.name !== "Other");
     if (trackable.length > 0) {
@@ -467,6 +482,7 @@ export const recordCollection = createServerFn({ method: "POST" })
       customer_id: c.id, distributor_id: user.id, items: data.items, status: "Completed",
     }).select().single();
     if (error) throw new Error(error.message);
+    await supabaseAdmin.from("otps").update({ used: true }).eq("id", otp.id);
     return { transaction: row };
   });
 
