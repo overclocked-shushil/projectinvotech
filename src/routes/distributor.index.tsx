@@ -29,6 +29,10 @@ function DistHome() {
   const [alreadyCollected, setAlreadyCollected] = useState(false);
   const [busy, setBusy] = useState(false);
   const [txns, setTxns] = useState<any[]>([]);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [maskedPhone, setMaskedPhone] = useState("");
+  const [sendingOtp, setSendingOtp] = useState(false);
 
   async function lookup() {
     const id = rid.trim().toUpperCase();
