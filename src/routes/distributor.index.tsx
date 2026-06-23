@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { useRequireRole } from "@/lib/useRequireRole";
 import { useSession } from "@/lib/session";
-import { lookupCustomer, recordCollection, myTransactions, myStock } from "@/lib/pds.functions";
+import { lookupCustomer, recordCollection, sendCollectionOtp, myTransactions, myStock } from "@/lib/pds.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RATION_ID_RE } from "@/lib/constants";
@@ -29,6 +29,10 @@ function DistHome() {
   const [alreadyCollected, setAlreadyCollected] = useState(false);
   const [busy, setBusy] = useState(false);
   const [txns, setTxns] = useState<any[]>([]);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [maskedPhone, setMaskedPhone] = useState("");
+  const [sendingOtp, setSendingOtp] = useState(false);
 
   async function lookup() {
     const id = rid.trim().toUpperCase();
@@ -40,10 +44,23 @@ function DistHome() {
       setHouseholdSize(r.householdSize);
       setEntitlements(r.entitlements);
       setAlreadyCollected(r.alreadyCollectedThisMonth);
+      setOtpSent(false); setOtpCode(""); setMaskedPhone("");
     } catch (e) {
       setCustomer(null); setFamily([]); setEntitlements([]); setAlreadyCollected(false);
       toast.error((e as Error).message);
     }
+  }
+
+  async function sendOtp() {
+    if (!customer) return;
+    setSendingOtp(true);
+    try {
+      const r = await sendCollectionOtp({ data: { token: token!, customerRationId: customer.ration_id } });
+      setOtpSent(true);
+      setMaskedPhone(r.maskedPhone);
+      toast.success(`OTP sent to customer ${r.maskedPhone}.${r.devOtp ? ` (dev: ${r.devOtp})` : ""}`);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setSendingOtp(false); }
   }
 
   async function submit() {
@@ -53,10 +70,11 @@ function DistHome() {
     }
     const items = entitlements.filter((it) => it.quantity > 0);
     if (items.length === 0) return toast.error("No entitled items to distribute.");
+    if (!/^\d{6}$/.test(otpCode)) return toast.error("Enter the 6-digit OTP sent to the customer.");
     setBusy(true);
     try {
       const r = await recordCollection({
-        data: { token: token!, customerRationId: customer.ration_id, items },
+        data: { token: token!, customerRationId: customer.ration_id, otpCode, items },
       });
       toast.success("Collection recorded. Stock updated.");
       downloadTransactionPdf({
@@ -65,10 +83,12 @@ function DistHome() {
         distributor: { name: user!.name, ration_id: user!.rationId },
       } as any);
       setCustomer(null); setRid(""); setFamily([]); setEntitlements([]); setAlreadyCollected(false);
+      setOtpSent(false); setOtpCode(""); setMaskedPhone("");
       loadTxns();
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
   }
+
 
   async function loadTxns() {
     if (!token) return;
@@ -140,7 +160,35 @@ function DistHome() {
                 </table>
               </div>
             )}
-            <Button onClick={submit} disabled={!customer || busy || alreadyCollected || entitlements.length===0} className="mt-6 w-full">
+            {customer && !alreadyCollected && entitlements.length > 0 && (
+              <div className="mt-6 rounded-lg border border-border bg-muted/30 p-4">
+                <h3 className="text-sm font-semibold">Customer OTP Verification</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Send a one-time code to the customer's registered mobile. They confirm receipt by sharing the OTP with you.
+                </p>
+                {!otpSent ? (
+                  <Button variant="outline" onClick={sendOtp} disabled={sendingOtp} className="mt-3 w-full">
+                    {sendingOtp ? "Sending..." : "Send OTP to Customer"}
+                  </Button>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs text-muted-foreground">OTP sent to {maskedPhone}.</p>
+                    <Input
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="Enter 6-digit OTP from customer"
+                      className="font-mono tracking-widest"
+                    />
+                    <button type="button" onClick={sendOtp} disabled={sendingOtp} className="text-xs text-primary underline disabled:opacity-50">
+                      {sendingOtp ? "Resending..." : "Resend OTP"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            <Button onClick={submit} disabled={!customer || busy || alreadyCollected || entitlements.length===0 || !otpSent || otpCode.length!==6} className="mt-6 w-full">
               {busy ? "Recording..." : "Record Distribution"}
             </Button>
           </div>

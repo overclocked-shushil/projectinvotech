@@ -386,6 +386,41 @@ export const lookupCustomer = createServerFn({ method: "POST" })
     };
   });
 
+// Collection-confirmation OTP marker stored in otps.ration_id
+const collectPrefix = (rid: string) => `__collect:${rid}`;
+
+// ============ DISTRIBUTOR: send collection OTP to the customer's phone ============
+export const sendCollectionOtp = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string; customerRationId: string }) =>
+    z.object({ token: z.string(), customerRationId: rationId }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const { user } = await requireSession(data.token);
+    if (user.role !== "distributor") throw new Error("Forbidden");
+    const { data: c } = await supabaseAdmin.from("users").select("*").eq("ration_id", data.customerRationId).eq("role", "customer").maybeSingle();
+    if (!c) throw new Error("Customer not found");
+    if (!c.phone) throw new Error("No phone number on file for this customer. Contact admin.");
+
+    // Block duplicate distribution in same calendar month before sending an OTP
+    const { data: existing } = await supabaseAdmin
+      .from("ration_collections")
+      .select("id")
+      .eq("customer_id", c.id)
+      .gte("date_received", startOfThisMonthIso())
+      .limit(1)
+      .maybeSingle();
+    if (existing) throw new Error("Ration already distributed to this customer for this month.");
+
+    const marker = collectPrefix(c.ration_id);
+    await supabaseAdmin.from("otps").update({ used: true }).eq("ration_id", marker).eq("used", false);
+    const code = generateOtp();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    await supabaseAdmin.from("otps").insert({ ration_id: marker, code, expires_at: expiresAt });
+    const sms = await sendSms(c.phone, `Your PDS ration collection OTP is ${code}. Share it with the distributor to confirm receipt. Valid for 5 minutes.`);
+    if (!sms.ok) throw new Error(sms.error ?? "Failed to send OTP. Please try again later.");
+    return { ok: true, maskedPhone: maskPhone(c.phone), expiresAt, devOtp: sms.debugCode ? code : undefined };
+  });
+
 const itemSchema = z.object({
   name: z.string().min(1).max(50),
   quantity: z.number().min(0.01).max(10000),
@@ -393,10 +428,11 @@ const itemSchema = z.object({
 });
 
 export const recordCollection = createServerFn({ method: "POST" })
-  .inputValidator((d: { token: string; customerRationId: string; items: { name: string; quantity: number; unit: string }[] }) =>
+  .inputValidator((d: { token: string; customerRationId: string; otpCode: string; items: { name: string; quantity: number; unit: string }[] }) =>
     z.object({
       token: z.string(),
       customerRationId: rationId,
+      otpCode: z.string().regex(/^\d{6}$/, "Enter the 6-digit OTP sent to the customer"),
       items: z.array(itemSchema).min(1).max(20),
     }).parse(d)
   )
@@ -418,6 +454,20 @@ export const recordCollection = createServerFn({ method: "POST" })
       throw new Error("Ration already distributed to this customer for this month.");
     }
 
+    // Verify the OTP the customer received and shared with the distributor
+    const marker = collectPrefix(c.ration_id);
+    const { data: otp } = await supabaseAdmin
+      .from("otps")
+      .select("*")
+      .eq("ration_id", marker)
+      .eq("code", data.otpCode)
+      .eq("used", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!otp) throw new Error("Invalid OTP. Please verify the OTP sent to the customer's phone.");
+    if (new Date(otp.expires_at).getTime() < Date.now()) throw new Error("OTP expired. Please send a new OTP.");
+
     // Atomic stock deduction (skip "Other" — no stock tracking for free-form items)
     const trackable = data.items.filter((i) => i.name !== "Other");
     if (trackable.length > 0) {
@@ -432,6 +482,7 @@ export const recordCollection = createServerFn({ method: "POST" })
       customer_id: c.id, distributor_id: user.id, items: data.items, status: "Completed",
     }).select().single();
     if (error) throw new Error(error.message);
+    await supabaseAdmin.from("otps").update({ used: true }).eq("id", otp.id);
     return { transaction: row };
   });
 
