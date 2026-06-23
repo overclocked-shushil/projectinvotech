@@ -44,10 +44,23 @@ function DistHome() {
       setHouseholdSize(r.householdSize);
       setEntitlements(r.entitlements);
       setAlreadyCollected(r.alreadyCollectedThisMonth);
+      setOtpSent(false); setOtpCode(""); setMaskedPhone("");
     } catch (e) {
       setCustomer(null); setFamily([]); setEntitlements([]); setAlreadyCollected(false);
       toast.error((e as Error).message);
     }
+  }
+
+  async function sendOtp() {
+    if (!customer) return;
+    setSendingOtp(true);
+    try {
+      const r = await sendCollectionOtp({ data: { token: token!, customerRationId: customer.ration_id } });
+      setOtpSent(true);
+      setMaskedPhone(r.maskedPhone);
+      toast.success(`OTP sent to customer ${r.maskedPhone}.${r.devOtp ? ` (dev: ${r.devOtp})` : ""}`);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setSendingOtp(false); }
   }
 
   async function submit() {
@@ -57,10 +70,11 @@ function DistHome() {
     }
     const items = entitlements.filter((it) => it.quantity > 0);
     if (items.length === 0) return toast.error("No entitled items to distribute.");
+    if (!/^\d{6}$/.test(otpCode)) return toast.error("Enter the 6-digit OTP sent to the customer.");
     setBusy(true);
     try {
       const r = await recordCollection({
-        data: { token: token!, customerRationId: customer.ration_id, items },
+        data: { token: token!, customerRationId: customer.ration_id, otpCode, items },
       });
       toast.success("Collection recorded. Stock updated.");
       downloadTransactionPdf({
@@ -69,10 +83,12 @@ function DistHome() {
         distributor: { name: user!.name, ration_id: user!.rationId },
       } as any);
       setCustomer(null); setRid(""); setFamily([]); setEntitlements([]); setAlreadyCollected(false);
+      setOtpSent(false); setOtpCode(""); setMaskedPhone("");
       loadTxns();
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
   }
+
 
   async function loadTxns() {
     if (!token) return;
