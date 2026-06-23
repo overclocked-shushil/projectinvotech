@@ -160,7 +160,35 @@ function DistHome() {
                 </table>
               </div>
             )}
-            <Button onClick={submit} disabled={!customer || busy || alreadyCollected || entitlements.length===0} className="mt-6 w-full">
+            {customer && !alreadyCollected && entitlements.length > 0 && (
+              <div className="mt-6 rounded-lg border border-border bg-muted/30 p-4">
+                <h3 className="text-sm font-semibold">Customer OTP Verification</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Send a one-time code to the customer's registered mobile. They confirm receipt by sharing the OTP with you.
+                </p>
+                {!otpSent ? (
+                  <Button variant="outline" onClick={sendOtp} disabled={sendingOtp} className="mt-3 w-full">
+                    {sendingOtp ? "Sending..." : "Send OTP to Customer"}
+                  </Button>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs text-muted-foreground">OTP sent to {maskedPhone}.</p>
+                    <Input
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="Enter 6-digit OTP from customer"
+                      className="font-mono tracking-widest"
+                    />
+                    <button type="button" onClick={sendOtp} disabled={sendingOtp} className="text-xs text-primary underline disabled:opacity-50">
+                      {sendingOtp ? "Resending..." : "Resend OTP"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            <Button onClick={submit} disabled={!customer || busy || alreadyCollected || entitlements.length===0 || !otpSent || otpCode.length!==6} className="mt-6 w-full">
               {busy ? "Recording..." : "Record Distribution"}
             </Button>
           </div>
